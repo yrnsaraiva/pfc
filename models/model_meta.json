@@ -1,0 +1,47 @@
+{
+  "features": [
+    "age",
+    "sex_male",
+    "education_years",
+    "height_cm",
+    "weight_kg",
+    "bmi",
+    "waist_cm",
+    "waist_height_ratio",
+    "sbp",
+    "dbp",
+    "bp_meds",
+    "told_hypertension",
+    "smoker_current",
+    "smokeless_current",
+    "alcohol_past12m",
+    "alcohol_days_month",
+    "fruit_servings_day",
+    "veg_servings_day",
+    "met_min_week",
+    "sedentary_hours_day"
+  ],
+  "target": "diabetes",
+  "glucose_threshold_mmol_l": 6.1,
+  "target_sensitivity": 0.8,
+  "n_samples": 4882,
+  "prevalence": 0.04956984842277755,
+  "models": {
+    "lr": {
+      "screening_threshold": 0.0337,
+      "high_risk_threshold": 0.0837
+    },
+    "rf": {
+      "screening_threshold": 0.034,
+      "high_risk_threshold": 0.084
+    },
+    "lgbm": {
+      "screening_threshold": 0.0375,
+      "high_risk_threshold": 0.0875
+    },
+    "xgb": {
+      "screening_threshold": 0.0384,
+      "high_risk_threshold": 0.0884
+    }
+  }
+}

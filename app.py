@@ -1,5 +1,5 @@
 """
-API de Avaliação de Risco de Diabetes (BRFSS) - FastAPI
+API de Avaliação de Risco de Diabetes (STEPS Moçambique 2005/2014) - FastAPI
 
 Boas práticas incluídas:
 - risk_score + risk_level (thresholds configuráveis)
@@ -33,34 +33,49 @@ logging.basicConfig(level=logging.INFO)
 # Ajuste paths conforme teu projeto
 MODELS_DIR = Path("models")
 METRICS_PATH = Path("metrics.json")
+META_PATH = MODELS_DIR / "model_meta.json"
 
 # Registry de modelos (inclui metadata para rastreabilidade)
 MODEL_REGISTRY: Dict[str, Dict[str, str]] = {
+    "lr": {
+        "pipeline_path": str(MODELS_DIR / "pipeline_lr.pkl"),
+        "model_id": "diabetes-risk-lr",
+        "model_version": "2.0.0",
+    },
     "rf": {
         "pipeline_path": str(MODELS_DIR / "pipeline_rf.pkl"),
         "model_id": "diabetes-risk-rf",
-        "model_version": "1.0.0",
+        "model_version": "2.0.0",
     },
     "lgbm": {
         "pipeline_path": str(MODELS_DIR / "pipeline_lgbm.pkl"),
         "model_id": "diabetes-risk-lgbm",
-        "model_version": "1.0.0",
+        "model_version": "2.0.0",
     },
     "xgb": {
         "pipeline_path": str(MODELS_DIR / "pipeline_xgb.pkl"),
         "model_id": "diabetes-risk-xgb",
-        "model_version": "1.0.0",
+        "model_version": "2.0.0",
     },
 }
 
-# Thresholds para estratificação (ajuste conforme tua calibração/estratégia)
-THRESHOLDS = {
-    "low": 0.20,
-    "medium": 0.50,
-    "high": 0.80,
-}
+def load_meta() -> Dict[str, Any]:
+    if not META_PATH.exists():
+        raise RuntimeError(f"Metadata de treino não encontrada em {META_PATH}. Execute train.py")
+    return json.loads(META_PATH.read_text(encoding="utf-8"))
 
-ModelName = Literal["rf", "lgbm", "xgb"]
+
+META = load_meta()
+FEATURE_ORDER: List[str] = META["features"]
+
+
+def thresholds_for(model_name: str) -> Dict[str, float]:
+    """Limiares calibrados no treino: screening (sensibilidade-alvo) e alto risco."""
+    m = META["models"][model_name]
+    return {"low": m["screening_threshold"], "high": m["high_risk_threshold"]}
+
+
+ModelName = Literal["lr", "rf", "lgbm", "xgb"]
 RiskLevel = Literal["low", "medium", "high"]
 
 
@@ -79,39 +94,48 @@ class ErrorResponse(BaseModel):
 
 class Features(BaseModel):
     """
-    Features BRFSS diabetes indicators.
+    Features do rastreio STEPS (OMS) - apenas dados de questionário e medições não invasivas.
+    Campos opcionais em falta são imputados (mediana do treino) pelo pipeline.
     """
 
-    # binárias 0/1
-    HighBP: conint(ge=0, le=1)
-    HighChol: conint(ge=0, le=1)
-    CholCheck: conint(ge=0, le=1)
-    Smoker: conint(ge=0, le=1)
-    Stroke: conint(ge=0, le=1)
-    HeartDiseaseorAttack: conint(ge=0, le=1)
-    PhysActivity: conint(ge=0, le=1)
-    Fruits: conint(ge=0, le=1)
-    Veggies: conint(ge=0, le=1)
-    HvyAlcoholConsump: conint(ge=0, le=1)
-    AnyHealthcare: conint(ge=0, le=1)
-    NoDocbcCost: conint(ge=0, le=1)
-    DiffWalk: conint(ge=0, le=1)
-    Sex: conint(ge=0, le=1)
+    age: conint(ge=18, le=100) = Field(..., description="Idade em anos")
+    sex_male: conint(ge=0, le=1) = Field(..., description="1 = masculino, 0 = feminino")
 
-    # contínuas/ordinais
-    BMI: confloat(ge=10, le=80)         # range plausível
-    GenHlth: conint(ge=1, le=5)         # 1..5
-    MentHlth: conint(ge=0, le=30)       # dias
-    PhysHlth: conint(ge=0, le=30)       # dias
+    # antropometria
+    height_cm: Optional[confloat(ge=100, le=230)] = Field(None, description="Altura (cm)")
+    weight_kg: Optional[confloat(ge=25, le=250)] = Field(None, description="Peso (kg)")
+    waist_cm: Optional[confloat(ge=40, le=200)] = Field(None, description="Perímetro da cintura (cm)")
 
-    # categóricas ordinais
-    Age: conint(ge=1, le=13)            # _AGEG5YR
-    Education: conint(ge=1, le=6)       # BRFSS comum
-    Income: conint(ge=1, le=8)          # BRFSS comum
+    # tensão arterial
+    sbp: Optional[confloat(ge=70, le=260)] = Field(None, description="Tensão sistólica (mmHg)")
+    dbp: Optional[confloat(ge=40, le=150)] = Field(None, description="Tensão diastólica (mmHg)")
+    bp_meds: Optional[conint(ge=0, le=1)] = Field(None, description="Toma medicação para hipertensão")
+    told_hypertension: conint(ge=0, le=1) = Field(0, description="Já lhe disseram que tem hipertensão")
+
+    # estilo de vida
+    education_years: Optional[confloat(ge=0, le=25)] = Field(None, description="Anos de escolaridade")
+    smoker_current: conint(ge=0, le=1) = Field(0, description="Fuma actualmente")
+    smokeless_current: conint(ge=0, le=1) = Field(0, description="Usa tabaco sem fumo")
+    alcohol_past12m: conint(ge=0, le=1) = Field(0, description="Bebeu álcool nos últimos 12 meses")
+    alcohol_days_month: Optional[confloat(ge=0, le=31)] = Field(
+        None, description="Dias de consumo de álcool por mês (aprox.)")
+    fruit_servings_day: Optional[confloat(ge=0, le=15)] = Field(None, description="Porções de fruta/dia")
+    veg_servings_day: Optional[confloat(ge=0, le=15)] = Field(None, description="Porções de vegetais/dia")
+    met_min_week: Optional[confloat(ge=0, le=60000)] = Field(
+        None, description="Actividade física (MET-min/semana, GPAQ)")
+    sedentary_hours_day: Optional[confloat(ge=0, le=16)] = Field(None, description="Horas sentado/dia")
+
+    def to_frame(self) -> pd.DataFrame:
+        """DataFrame com as colunas (incl. derivadas) pela ordem usada no treino."""
+        row = self.model_dump()
+        h, w, wc = row["height_cm"], row["weight_kg"], row["waist_cm"]
+        row["bmi"] = w / (h / 100) ** 2 if h and w else None
+        row["waist_height_ratio"] = wc / h if wc and h else None
+        return pd.DataFrame([row], columns=FEATURE_ORDER).astype(float)
 
 
 class PredictRequest(BaseModel):
-    model_name: ModelName = Field(..., description="Modelo a usar: rf|lgbm|xgb")
+    model_name: ModelName = Field(..., description="Modelo a usar: lr|rf|lgbm|xgb")
     subject_id: Optional[str] = Field(None, description="ID do utente/participante (opcional)")
     features: Features
     explain: bool = Field(False, description="Reservado para futuro (explicabilidade)")
@@ -185,6 +209,8 @@ class ModelInfoResponse(BaseModel):
     model_id: str
     model_version: str
     thresholds: Dict[str, float]
+    glucose_threshold_mmol_l: float
+    features: List[str]
 
 
 class MetricsResponse(BaseModel):
@@ -212,19 +238,13 @@ def error(code: str, message: str, details: Optional[List[Dict[str, Any]]] = Non
     return HTTPException(status_code=400 if code == "VALIDATION_ERROR" else 500, detail=payload["error"])
 
 
-def score_to_level(p: float) -> RiskLevel:
-    if p >= THRESHOLDS["high"]:
+def score_to_level(p: float, model_name: str) -> RiskLevel:
+    t = thresholds_for(model_name)
+    if p >= t["high"]:
         return "high"
-    if p >= THRESHOLDS["medium"]:
+    if p >= t["low"]:
         return "medium"
     return "low"
-
-
-def predict_proba_safe(model: Any, df: pd.DataFrame) -> Optional[float]:
-    if not hasattr(model, "predict_proba"):
-        return None
-    proba = model.predict_proba(df)
-    return float(proba[0][1])
 
 
 def load_models() -> Dict[str, Any]:
@@ -267,25 +287,12 @@ def get_model(model_name: str, model_dependency: Dict[str, Any]) -> Any:
     return model_dependency[model_name]
 
 
-def ensure_feature_order(df: pd.DataFrame, model: Any) -> pd.DataFrame:
-    expected = getattr(model, "feature_names_in_", None)
-    if expected is None:
-        return df
-
-    missing = [c for c in expected if c not in df.columns]
-    extra = [c for c in df.columns if c not in expected]
-    if missing or extra:
-        raise HTTPException(
-            status_code=400,
-            detail=ErrorResponse(
-                error=ErrorInner(
-                    code="VALIDATION_ERROR",
-                    message="Features incompatíveis com o modelo",
-                    details=[{"missing": missing, "extra": extra}],
-                )
-            ).model_dump()["error"],
-        )
-    return df[list(expected)]
+def predict_one(model: Any, model_name: str, features: Features) -> tuple[int, float, RiskLevel]:
+    """Probabilidade calibrada + decisão pelo limiar de rastreio definido no treino."""
+    df = features.to_frame()
+    risk_score = max(0.0, min(1.0, float(model.predict_proba(df)[0][1])))
+    prediction = int(risk_score >= thresholds_for(model_name)["low"])
+    return prediction, risk_score, score_to_level(risk_score, model_name)
 
 
 # -----------------------------------------------------------------------------
@@ -337,7 +344,9 @@ def model_info(model_name: ModelName) -> ModelInfoResponse:
         name=model_name,
         model_id=meta["model_id"],
         model_version=meta["model_version"],
-        thresholds=THRESHOLDS,
+        thresholds=thresholds_for(model_name),
+        glucose_threshold_mmol_l=META["glucose_threshold_mmol_l"],
+        features=FEATURE_ORDER,
     )
 
 
@@ -349,16 +358,7 @@ def predict(req: PredictRequest, model_dependency: Dict[str, Any] = Depends(get_
     created_at = now_iso()
 
     try:
-        # DataFrame + compatibilidade de dtype com treino
-        df = pd.DataFrame([req.features.model_dump()]).astype(float)
-        df = ensure_feature_order(df, model)
-
-        pred = model.predict(df)
-        proba = predict_proba_safe(model, df)
-
-        risk_score = float(proba) if proba is not None else float(pred[0])
-        risk_score = max(0.0, min(1.0, risk_score))  # clamp defensivo
-        risk_level = score_to_level(risk_score)
+        pred, risk_score, risk_level = predict_one(model, req.model_name, req.features)
 
         resp = PredictResponse(
             request_id=request_id,
@@ -369,7 +369,7 @@ def predict(req: PredictRequest, model_dependency: Dict[str, Any] = Depends(get_
             ),
             subject_id=req.subject_id,
             result=PredictResult(
-                prediction=int(pred[0]),  # type: ignore[arg-type]
+                prediction=pred,  # type: ignore[arg-type]
                 risk_score=risk_score,
                 risk_level=risk_level,
             ),
@@ -419,20 +419,12 @@ def predict_batch(
 
     try:
         for item in req.items:
-            df = pd.DataFrame([item.features.model_dump()]).astype(float)
-            df = ensure_feature_order(df, model)
-
-            pred = model.predict(df)
-            proba = predict_proba_safe(model, df)
-
-            risk_score = float(proba) if proba is not None else float(pred[0])
-            risk_score = max(0.0, min(1.0, risk_score))
-            risk_level = score_to_level(risk_score)
+            pred, risk_score, risk_level = predict_one(model, req.model_name, item.features)
 
             results.append(
                 BatchPredictResult(
                     subject_id=item.subject_id,
-                    prediction=int(pred[0]),  # type: ignore[arg-type]
+                    prediction=pred,  # type: ignore[arg-type]
                     risk_score=risk_score,
                     risk_level=risk_level,
                 )
