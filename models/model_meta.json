@@ -40,8 +40,8 @@
       "high_risk_threshold": 0.0875
     },
     "xgb": {
-      "screening_threshold": 0.0384,
-      "high_risk_threshold": 0.0884
+      "screening_threshold": 0.0379,
+      "high_risk_threshold": 0.0879
     }
   }
 }

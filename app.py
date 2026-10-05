@@ -59,6 +59,7 @@ MODEL_REGISTRY: Dict[str, Dict[str, str]] = {
     },
 }
 
+
 def load_meta() -> Dict[str, Any]:
     if not META_PATH.exists():
         raise RuntimeError(f"Metadata de treino não encontrada em {META_PATH}. Execute train.py")
