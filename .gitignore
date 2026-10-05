@@ -4,4 +4,6 @@ venv/
 env/
 .env
 *.log
-LLCP2021.csv
+LLCP2021.csv# Dados brutos STEPS contêm identificadores pessoais (nomes, locais): nunca versionar
+data/raw/
+.ipynb_checkpoints/
