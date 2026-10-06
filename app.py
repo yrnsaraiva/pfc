@@ -20,6 +20,7 @@ from uuid import uuid4
 import joblib
 import pandas as pd
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, conint, confloat
 
 # -----------------------------------------------------------------------------
@@ -33,6 +34,7 @@ logging.basicConfig(level=logging.INFO)
 # Ajuste paths conforme teu projeto
 MODELS_DIR = Path("models")
 METRICS_PATH = Path("metrics.json")
+STATIC_DIR = Path(__file__).parent / "static"
 META_PATH = MODELS_DIR / "model_meta.json"
 
 # Registry de modelos (inclui metadata para rastreabilidade)
@@ -311,6 +313,12 @@ app = FastAPI(
 # -----------------------------------------------------------------------------
 # Routes
 # -----------------------------------------------------------------------------
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    """Interface web do protótipo."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
 @app.get(f"{API_PREFIX}/health", response_model=HealthResponse)
 def health() -> HealthResponse:
     return HealthResponse(status="ok", time=now_iso())

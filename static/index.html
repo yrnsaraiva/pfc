@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rastreio de risco de diabetes</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --text: #1c2733; --muted: #5b6b7b; --line: #dbe2ea;
+    --accent: #1f6feb; --low: #1a7f4b; --mid: #b7791f; --high: #c0392b;
+    --low-bg: #e6f4ec; --mid-bg: #fdf3dc; --high-bg: #fbe9e7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1720; --card: #17212c; --text: #e6edf3; --muted: #9fb0c0; --line: #2a3745;
+      --accent: #58a6ff; --low: #4cc38a; --mid: #e3b341; --high: #ff7b72;
+      --low-bg: #12301f; --mid-bg: #3a2f12; --high-bg: #3d1a17;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 28px 16px 8px; max-width: 1040px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  header p { margin: 0; color: var(--muted); }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px; display: grid; gap: 16px;
+         grid-template-columns: 1fr; }
+  @media (min-width: 900px) { main { grid-template-columns: 1.4fr 1fr; align-items: start; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  fieldset { border: 0; padding: 0; margin: 0 0 20px; }
+  legend { font-weight: 600; margin-bottom: 10px; padding: 0; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font-size: .88rem; color: var(--muted); margin-bottom: 4px; }
+  label .req { color: var(--high); }
+  input, select { width: 100%; padding: 9px 10px; font: inherit; color: var(--text);
+                  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .hint { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+  .full { grid-column: 1 / -1; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; padding: 10px 18px; border: 1px solid var(--line);
+           background: var(--card); color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button:disabled { opacity: .6; cursor: wait; }
+  #result { position: sticky; top: 16px; }
+  .empty { color: var(--muted); }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem; }
+  .low  { color: var(--low);  background: var(--low-bg); }
+  .mid  { color: var(--mid);  background: var(--mid-bg); }
+  .high { color: var(--high); background: var(--high-bg); }
+  .score { font-size: 2.6rem; font-weight: 700; margin: 8px 0 0; line-height: 1.1; }
+  .bar { position: relative; height: 12px; border-radius: 6px; margin: 16px 0 6px; }
+  .bar .seg { position: absolute; top: 0; bottom: 0; opacity: .4; }
+  .bar .seg:first-child { border-radius: 6px 0 0 6px; } .bar .seg:last-of-type { border-radius: 0 6px 6px 0; }
+  .marker { position: absolute; top: -4px; width: 4px; height: 20px; background: var(--text); border-radius: 2px;
+            transform: translateX(-2px); }
+  .scale { position: relative; height: 1.2em; font-size: .75rem; color: var(--muted); }
+  .scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .scale span:first-child { transform: none; }
+  .advice { margin: 14px 0 0; padding: 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); }
+  .meta { margin-top: 14px; font-size: .82rem; color: var(--muted); }
+  .meta dt { float: left; clear: left; width: 9.5em; }
+  .meta dd { margin: 0 0 2px 9.5em; }
+  .disclaimer { font-size: .78rem; color: var(--muted); margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .error { color: var(--high); background: var(--high-bg); padding: 10px; border-radius: 8px; margin-top: 12px; }
+  footer { max-width: 1040px; margin: 0 auto; padding: 8px 16px 32px; font-size: .8rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Rastreio de risco de diabetes</h1>
+  <p>Protótipo treinado com os inquéritos STEPS de Moçambique (2005 e 2014). Estima o risco sem análise de sangue.</p>
+</header>
+
+<main>
+  <form id="form" class="card" novalidate>
+    <fieldset>
+      <legend>Dados da pessoa</legend>
+      <div class="grid">
+        <div>
+          <label for="age">Idade (anos) <span class="req">*</span></label>
+          <input id="age" type="number" min="25" max="64" step="1" required>
+          <div class="hint">O modelo foi treinado com 25 a 64 anos.</div>
+        </div>
+        <div>
+          <label for="sex">Sexo <span class="req">*</span></label>
+          <select id="sex" required>
+            <option value="">Seleccione…</option>
+            <option value="0">Feminino</option>
+            <option value="1">Masculino</option>
+          </select>
+        </div>
+        <div>
+          <label for="education">Anos de escolaridade</label>
+          <input id="education" type="number" min="0" max="25" step="1">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Medições</legend>
+      <div class="grid">
+        <div><label for="height">Altura (cm)</label><input id="height" type="number" min="100" max="230" step="0.1"></div>
+        <div><label for="weight">Peso (kg)</label><input id="weight" type="number" min="25" max="250" step="0.1"></div>
+        <div>
+          <label for="waist">Cintura (cm)</label><input id="waist" type="number" min="40" max="200" step="0.1">
+          <div class="hint">Ajuda muito: é das variáveis mais informativas.</div>
+        </div>
+        <div><label for="sbp">Tensão sistólica (mmHg)</label><input id="sbp" type="number" min="70" max="260" step="1"></div>
+        <div><label for="dbp">Tensão diastólica (mmHg)</label><input id="dbp" type="number" min="40" max="150" step="1"></div>
+        <div>
+          <label for="told_hyp">Já lhe disseram que tem hipertensão?</label>
+          <select id="told_hyp"><option value="0">Não</option><option value="1">Sim</option></select>
+        </div>
+        <div>
+          <label for="bp_meds">Toma medicação para a tensão?</label>
+          <select id="bp_meds"><option value="">Não sei / não respondeu</option><option value="0">Não</option><option value="1">Sim</option></select>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Estilo de vida</legend>
+      <div class="grid">
+        <div>
+          <label for="smoker">Fuma actualmente?</label>
+          <select id="smoker"><option value="0">Não</option><option value="1">Sim</option></select>
+        </div>
+        <div>
+          <label for="smokeless">Usa tabaco sem fumo?</label>
+          <select id="smokeless"><option value="0">Não</option><option value="1">Sim</option></select>
+        </div>
+        <div class="full">
+          <label for="alcohol">Consumo de álcool (últimos 12 meses)</label>
+          <select id="alcohol">
+            <option value="none">Não bebeu</option>
+            <option value="0.5">Menos de 1 vez por mês</option>
+            <option value="2">1 a 3 dias por mês</option>
+            <option value="6">1 a 2 dias por semana</option>
+            <option value="14">3 a 4 dias por semana</option>
+            <option value="22">5 a 6 dias por semana</option>
+            <option value="30">Todos os dias</option>
+          </select>
+        </div>
+        <div><label for="fruit_days">Fruta: dias por semana</label><input id="fruit_days" type="number" min="0" max="7" step="1"></div>
+        <div><label for="fruit_serv">Fruta: porções por dia</label><input id="fruit_serv" type="number" min="0" max="15" step="1"></div>
+        <div><label for="veg_days">Vegetais: dias por semana</label><input id="veg_days" type="number" min="0" max="7" step="1"></div>
+        <div><label for="veg_serv">Vegetais: porções por dia</label><input id="veg_serv" type="number" min="0" max="15" step="1"></div>
+        <div>
+          <label for="vig_min">Actividade física vigorosa (min/semana)</label>
+          <input id="vig_min" type="number" min="0" max="5000" step="5">
+          <div class="hint">Trabalho pesado, correr, futebol…</div>
+        </div>
+        <div>
+          <label for="mod_min">Actividade física moderada (min/semana)</label>
+          <input id="mod_min" type="number" min="0" max="5000" step="5">
+          <div class="hint">Caminhar a bom ritmo, bicicleta, tarefas leves…</div>
+        </div>
+        <div>
+          <label for="sedentary">Tempo sentado (horas/dia)</label>
+          <input id="sedentary" type="number" min="0" max="16" step="0.5">
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <label for="model" style="margin:0">Modelo</label>
+      <select id="model" style="width:auto"></select>
+      <button class="primary" type="submit" id="btn-calc">Calcular risco</button>
+      <button type="button" id="btn-example">Preencher exemplo</button>
+      <button type="button" id="btn-reset">Limpar</button>
+    </div>
+    <div id="error" class="error" hidden></div>
+  </form>
+
+  <section id="result" class="card" aria-live="polite">
+    <p class="empty">Preencha pelo menos a idade e o sexo e carregue em <b>Calcular risco</b>. Quanto mais campos preencher, mais fiável é a estimativa.</p>
+  </section>
+</main>
+
+<footer>
+  Ferramenta de apoio ao rastreio, <b>não é um diagnóstico</b>. Resultado indicativo, baseado em associações estatísticas.
+  <a href="/api/v1/docs">Documentação da API</a>
+</footer>
+
+<script>
+const API = "/api/v1";
+const $ = (id) => document.getElementById(id);
+const num = (id) => { const v = $(id).value.trim(); return v === "" ? null : Number(v); };
+const LEVELS = {
+  low:  { cls: "low",  label: "Risco baixo",
+          advice: "Risco abaixo do limiar de rastreio. Mantenha hábitos saudáveis e repita a avaliação periodicamente." },
+  medium: { cls: "mid", label: "Risco médio",
+          advice: "Risco acima do limiar de rastreio. Recomenda-se medir a glicemia em jejum numa unidade de saúde." },
+  high: { cls: "high", label: "Risco alto",
+          advice: "Risco bem acima do limiar de rastreio. Recomenda-se medir a glicemia em jejum com prioridade e procurar aconselhamento de saúde." },
+};
+
+function servings(days, perDay) {
+  if (days === null) return null;
+  if (days === 0) return 0;
+  return perDay === null ? null : (days * perDay) / 7;
+}
+
+function buildFeatures() {
+  const f = { age: num("age"), sex_male: Number($("sex").value) };
+  const put = (k, v) => { if (v !== null && !Number.isNaN(v)) f[k] = v; };
+  put("education_years", num("education"));
+  put("height_cm", num("height")); put("weight_kg", num("weight")); put("waist_cm", num("waist"));
+  put("sbp", num("sbp")); put("dbp", num("dbp"));
+  f.told_hypertension = Number($("told_hyp").value);
+  if ($("bp_meds").value !== "") f.bp_meds = Number($("bp_meds").value);
+  f.smoker_current = Number($("smoker").value);
+  f.smokeless_current = Number($("smokeless").value);
+  const alc = $("alcohol").value;
+  f.alcohol_past12m = alc === "none" ? 0 : 1;
+  f.alcohol_days_month = alc === "none" ? 0 : Number(alc);
+  put("fruit_servings_day", servings(num("fruit_days"), num("fruit_serv")));
+  put("veg_servings_day", servings(num("veg_days"), num("veg_serv")));
+  const vig = num("vig_min"), mod = num("mod_min");
+  if (vig !== null || mod !== null) f.met_min_week = 8 * (vig || 0) + 4 * (mod || 0);
+  put("sedentary_hours_day", num("sedentary"));
+  return f;
+}
+
+function showError(msg) { const e = $("error"); e.textContent = msg; e.hidden = !msg; }
+
+function detailMessage(body) {
+  const d = body && body.detail;
+  if (Array.isArray(d)) return d.map(x => `${(x.loc || []).slice(-1)[0]}: ${x.msg}`).join("; ");
+  if (d && d.message) return d.message;
+  return "Erro ao calcular o risco.";
+}
+
+function renderResult(data, thresholds, metrics) {
+  const r = data.result, lv = LEVELS[r.risk_level];
+  const pct = (r.risk_score * 100);
+  const cap = Math.max(thresholds.high * 2.5, 0.25);
+  const at = (v) => Math.min(v / cap, 1) * 100;
+  const pos = at(r.risk_score), pLow = at(thresholds.low), pHigh = at(thresholds.high);
+  const m = metrics && metrics.holdout_test;
+  $("result").innerHTML = `
+    <span class="badge ${lv.cls}">${lv.label}</span>
+    <div class="score">${pct.toFixed(1)}%</div>
+    <div class="empty">risco estimado de diabetes</div>
+    <div class="bar" role="img" aria-label="Posição do risco face aos limiares">
+      <div class="seg" style="left:0;width:${pLow}%;background:var(--low)"></div>
+      <div class="seg" style="left:${pLow}%;width:${pHigh - pLow}%;background:var(--mid)"></div>
+      <div class="seg" style="left:${pHigh}%;right:0;background:var(--high)"></div>
+      <div class="marker" style="left:${pos}%"></div>
+    </div>
+    <div class="scale"><span style="left:0">0%</span><span style="left:${pLow}%">${(thresholds.low * 100).toFixed(1)}%</span><span style="left:${pHigh}%">${(thresholds.high * 100).toFixed(1)}%</span></div>
+    <p class="advice">${lv.advice}</p>
+    <dl class="meta">
+      <dt>Modelo</dt><dd>${data.model.model_id} v${data.model.model_version}</dd>
+      <dt>Limiar de rastreio</dt><dd>${(thresholds.low * 100).toFixed(1)}% (alvo: apanhar ~80% dos casos)</dd>
+      ${m ? `<dt>Desempenho (teste)</dt><dd>ROC-AUC ${m.roc_auc.toFixed(2)}, sensibilidade ${(m.sensitivity * 100).toFixed(0)}%, especificidade ${(m.specificity * 100).toFixed(0)}%</dd>` : ""}
+    </dl>
+    <p class="disclaimer">Este resultado é uma estimativa estatística de rastreio e não substitui a avaliação de um profissional de saúde.
+    Muitos alertas serão falsos positivos (precisão de ~9%).</p>`;
+}
+
+async function loadModels() {
+  const sel = $("model");
+  try {
+    const res = await fetch(`${API}/models`);
+    const data = await res.json();
+    const names = { lr: "Regressão logística (recomendado)", rf: "Random Forest", lgbm: "LightGBM", xgb: "XGBoost" };
+    data.available_models.forEach(m => {
+      const o = document.createElement("option");
+      o.value = m.name; o.textContent = names[m.name] || m.name; sel.appendChild(o);
+    });
+    sel.value = "lr";
+  } catch (e) {
+    ["lr", "rf", "lgbm", "xgb"].forEach(n => sel.add(new Option(n, n)));
+  }
+}
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  showError("");
+  const age = num("age");
+  if (age === null || $("sex").value === "") { showError("Indique a idade e o sexo."); return; }
+  if (age < 25 || age > 64) { showError("O modelo foi treinado com pessoas de 25 a 64 anos."); return; }
+  const model = $("model").value;
+  const btn = $("btn-calc"); btn.disabled = true; btn.textContent = "A calcular…";
+  try {
+    const res = await fetch(`${API}/predict`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model_name: model, features: buildFeatures() }),
+    });
+    const body = await res.json();
+    if (!res.ok) { showError(detailMessage(body)); return; }
+    const [info, met] = await Promise.all([
+      fetch(`${API}/models/${model}`).then(r => r.json()),
+      fetch(`${API}/metrics/${model}`).then(r => (r.ok ? r.json() : null)).catch(() => null),
+    ]);
+    renderResult(body, info.thresholds, met && met.metrics);
+    if (window.innerWidth < 900) $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) {
+    showError("Não foi possível contactar a API.");
+  } finally {
+    btn.disabled = false; btn.textContent = "Calcular risco";
+  }
+});
+
+$("btn-example").addEventListener("click", () => {
+  const v = { age: 55, sex: "0", education: 3, height: 160, weight: 85, waist: 102, sbp: 150, dbp: 95,
+              told_hyp: "1", bp_meds: "0", smoker: "0", smokeless: "0", alcohol: "none",
+              fruit_days: 2, fruit_serv: 1, veg_days: 5, veg_serv: 1, vig_min: 0, mod_min: 60, sedentary: 6 };
+  Object.entries(v).forEach(([k, val]) => { $(k).value = val; });
+});
+$("btn-reset").addEventListener("click", () => {
+  $("form").reset(); showError("");
+  $("result").innerHTML = '<p class="empty">Preencha pelo menos a idade e o sexo e carregue em <b>Calcular risco</b>.</p>';
+});
+
+loadModels();
+</script>
+</body>
+</html>
