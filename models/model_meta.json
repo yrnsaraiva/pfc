@@ -24,24 +24,24 @@
   "target": "diabetes",
   "glucose_threshold_mmol_l": 6.1,
   "target_sensitivity": 0.8,
-  "n_samples": 4882,
-  "prevalence": 0.04956984842277755,
+  "n_samples": 3531,
+  "prevalence": 0.06117247238742566,
   "models": {
     "lr": {
-      "screening_threshold": 0.0337,
-      "high_risk_threshold": 0.0837
+      "screening_threshold": 0.0417,
+      "high_risk_threshold": 0.0917
     },
     "rf": {
-      "screening_threshold": 0.034,
-      "high_risk_threshold": 0.084
+      "screening_threshold": 0.0452,
+      "high_risk_threshold": 0.0952
     },
     "lgbm": {
-      "screening_threshold": 0.0375,
-      "high_risk_threshold": 0.0875
+      "screening_threshold": 0.0456,
+      "high_risk_threshold": 0.0956
     },
     "xgb": {
-      "screening_threshold": 0.0384,
-      "high_risk_threshold": 0.0884
+      "screening_threshold": 0.0482,
+      "high_risk_threshold": 0.09820000000000001
     }
   }
 }

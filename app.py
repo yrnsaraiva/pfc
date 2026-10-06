@@ -98,7 +98,7 @@ class Features(BaseModel):
     Campos opcionais em falta são imputados (mediana do treino) pelo pipeline.
     """
 
-    age: conint(ge=18, le=100) = Field(..., description="Idade em anos")
+    age: conint(ge=25, le=64) = Field(..., description="Idade em anos (o modelo foi treinado com 25-64)")
     sex_male: conint(ge=0, le=1) = Field(..., description="1 = masculino, 0 = feminino")
 
     # antropometria
