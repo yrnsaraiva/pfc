@@ -6,7 +6,7 @@ Pipeline e API de rastreio de diabetes treinados com os inquéritos STEPS (OMS) 
 1. Colocar os CSV brutos em `data/raw/` (`STEPS2005.csv`, `STEPS2014.csv`; **não são versionados** – o ficheiro de 2014 contém nomes).
 2. `python steps_data.py` → `data/processed/steps_mozambique_2005_2014.csv` (harmonizado, sem identificadores).
 3. `python train.py` → `models/*.pkl`, `models/model_meta.json`, `metrics.json` (`--build` refaz o passo 2).
-4. `uvicorn app:app --reload` → **interface web em http://127.0.0.1:8000/** (`static/index.html`) e docs da API em `/api/v1/docs`.
+4. `uvicorn app:app --reload` → **interface web em http://127.0.0.1:8000/** (`static/index.html`, formulário em 3 passos com validação, indicadores de IMC/cintura em tempo real e barra de preenchimento) e docs da API em `/api/v1/docs`.
    A interface mostra o painel **"Porque este resultado?"**: o efeito de cada grupo de variáveis no risco (pedido com `"explain": true` em `POST /predict`).
 5. `pytest` → testes da API e da explicação.
 
