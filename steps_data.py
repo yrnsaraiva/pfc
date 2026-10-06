@@ -8,11 +8,13 @@ Uso (linha de comandos):
 Principais decisões (ver README):
 - As duas vagas têm codificações diferentes (2005: códigos numéricos; 2014: texto em
   português com "Sem informacao"). Tudo é harmonizado para o mesmo esquema de colunas.
-- Alvo (`diabetes`) = 1 se (a) glicemia capilar em jejum >= GLUCOSE_THRESHOLD, ou
-  (b) diagnóstico médico de diabetes reportado. Linhas sem qualquer informação sobre o
-  alvo são descartadas.
-- A glicemia e as variáveis de diagnóstico/tratamento NÃO são features (evitar fuga de
-  informação): o modelo é uma ferramenta de rastreio sem análise sanguínea.
+- Definição alinhada com Madede et al., BMC Public Health 2022;22:2174 (mesmos inquéritos):
+  adultos de 25-64 anos com glicemia capilar em jejum (12 h) válida; `diabetes` = 1 se
+  glicemia >= GLUCOSE_THRESHOLD (6,1 mmol/L, sangue total capilar, igual nas duas vagas)
+  OU em tratamento com insulina/antidiabéticos orais. Quem não cumpriu o jejum ou não tem
+  glicemia é excluído (não é tratado como negativo).
+- A glicemia e as variáveis de tratamento NÃO são features (evitar fuga de informação):
+  o modelo é uma ferramenta de rastreio sem análise sanguínea.
 - Identificadores pessoais (nome, local, ids) nunca são escritos no ficheiro processado.
 """
 
@@ -53,7 +55,8 @@ FEATURES: List[str] = [
     "sedentary_hours_day",
 ]
 TARGET = "diabetes"
-META_COLS = ["survey_year", "glucose_mmol", "fasted", "diagnosed_diabetes"]
+META_COLS = ["survey_year", "glucose_mmol", "fasted", "on_treatment"]
+AGE_MIN, AGE_MAX = 25, 64  # faixa etária do STEPS Moçambique
 
 
 # -----------------------------------------------------------------------------
@@ -123,11 +126,14 @@ def finalize(df: pd.DataFrame, year: int) -> pd.DataFrame:
 def add_target(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     gl = df["glucose_mmol"].where(df["fasted"] == 1)
-    high_glucose = gl >= GLUCOSE_THRESHOLD
-    diag = df["diagnosed_diabetes"] == 1
-    known = gl.notna() | df["diagnosed_diabetes"].notna()
-    df[TARGET] = (high_glucose | diag).astype(float).where(known)
+    treated = df["on_treatment"] == 1
+    df[TARGET] = ((gl >= GLUCOSE_THRESHOLD) | treated).astype(float).where(gl.notna())
     return df
+
+
+def in_age_range(age: pd.Series) -> pd.Series:
+    """25-64 anos; idade em falta mantém-se (será imputada), como em Madede et al."""
+    return age.isna() | age.between(AGE_MIN, AGE_MAX)
 
 
 # -----------------------------------------------------------------------------
@@ -189,10 +195,10 @@ def load_2005(path: Path) -> pd.DataFrame:
     # --- alvo ---
     d["glucose_mmol"] = in_range(num(r["b5"], [999]), 0.5, GLUCOSE_MAX_VALID)
     d["fasted"] = yes_no(num(r["b1"]), 2, 1)  # b1: 1 = comeu/bebeu nas últimas 12 h
-    told = yes_no(num(r["h7"]), 1, 2)
-    d["diagnosed_diabetes"] = told
+    # tratamento: h8a = insulina, h8b = antidiabéticos orais (perguntados a quem tem diagnóstico)
+    d["on_treatment"] = ((num(r["h8a"]) == 1) | (num(r["h8b"]) == 1)).astype(float)
 
-    d = d[~pregnant & (d["age"] >= 18)]
+    d = d[~pregnant & in_age_range(d["age"])]
     d = add_target(d)
     return finalize(d, 2005)
 
@@ -263,12 +269,10 @@ def load_2014(path: Path) -> pd.DataFrame:
     # --- alvo ---
     d["glucose_mmol"] = in_range(num(r["b4"], [99.9]), 0.5, GLUCOSE_MAX_VALID)
     d["fasted"] = yes_no(r["b1"], "NÃO", "SIM")  # b1: comeu/bebeu nas últimas 12 h?
-    told = yes_no(r["h7"], "SIM", "NÃO")
-    on_meds = yes_no(r["b5"], "SIM", "NÃO")
-    d["diagnosed_diabetes"] = told.where(told.notna(), on_meds)
-    d.loc[on_meds == 1, "diagnosed_diabetes"] = 1.0
+    # tratamento: b5 = medicação para glicemia (passo 3); h8/h9 = insulina/orais (a confirmar)
+    d["on_treatment"] = ((r["b5"] == "SIM") | (r["h8"] == "SIM") | (r["h9"] == "SIM")).astype(float)
 
-    d = d[~pregnant & (d["age"] >= 18)]
+    d = d[~pregnant & in_age_range(d["age"])]
     d = add_target(d)
     return finalize(d, 2014)
 
