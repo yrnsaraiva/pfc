@@ -6,7 +6,9 @@ Pipeline e API de rastreio de diabetes treinados com os inquéritos STEPS (OMS) 
 1. Colocar os CSV brutos em `data/raw/` (`STEPS2005.csv`, `STEPS2014.csv`; **não são versionados** – o ficheiro de 2014 contém nomes).
 2. `python steps_data.py` → `data/processed/steps_mozambique_2005_2014.csv` (harmonizado, sem identificadores).
 3. `python train.py` → `models/*.pkl`, `models/model_meta.json`, `metrics.json` (`--build` refaz o passo 2).
-4. `uvicorn app:app --reload` → docs em `/api/v1/docs`.
+4. `uvicorn app:app --reload` → **interface web em http://127.0.0.1:8000/** (`static/index.html`) e docs da API em `/api/v1/docs`.
+   A interface mostra o painel **"Porque este resultado?"**: o efeito de cada grupo de variáveis no risco (pedido com `"explain": true` em `POST /predict`).
+5. `pytest` → testes da API e da explicação.
 
 ## Harmonização e alvo (`steps_data.py`)
 Alinhados com o artigo que analisa os mesmos inquéritos: Madede et al., *BMC Public Health* 2022;22:2174.
@@ -39,3 +41,6 @@ Ver `metrics.json`. ROC-AUC 0,70–0,73 (melhor: regressão logística, 0,733); 
 - Glicemia capilar subestima a venosa; a glicemia média sobe de 3,7 (2005) para 4,5 mmol/L (2014).
 - Idade em falta em 215 casos de 2014 (imputada pela mediana) enfraquece o sinal da variável mais importante.
 - Poucos positivos (216): intervalos de confiança largos; resultados indicativos, não para uso clínico.
+
+## Explicação do risco (`explain: true`)
+Por **oclusão de grupos** (igual para os 4 modelos): para cada grupo de variáveis (idade, sexo, escolaridade, medidas corporais, tensão arterial, tabaco, álcool, fruta/vegetais, actividade física), substituem-se os valores da pessoa pelos valores típicos (mediana de treino) e mede-se quanto o risco muda. Grupos não preenchidos têm efeito 0 e são assinalados. Os efeitos são aproximados (não somam ao total) e indicam associações, não causas.
