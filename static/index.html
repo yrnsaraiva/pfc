@@ -44,7 +44,8 @@
            background: var(--card); color: var(--text); }
   button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
   button:disabled { opacity: .6; cursor: wait; }
-  #result { position: sticky; top: 16px; }
+  #result { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
+  @media (max-width: 899px) { #result { position: static; max-height: none; } }
   .empty { color: var(--muted); }
   .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem; }
   .low  { color: var(--low);  background: var(--low-bg); }
@@ -63,6 +64,21 @@
   .meta { margin-top: 14px; font-size: .82rem; color: var(--muted); }
   .meta dt { float: left; clear: left; width: 9.5em; }
   .meta dd { margin: 0 0 2px 9.5em; }
+  .why { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .why h2 { font-size: 1.05rem; margin: 0 0 4px; }
+  .why .sub { font-size: .85rem; color: var(--muted); margin: 0 0 12px; }
+  .fx { display: grid; grid-template-columns: 1fr; gap: 2px; margin-bottom: 10px; }
+  .fx .name { font-size: .85rem; }
+  .fx .track { position: relative; height: 16px; background: var(--bg); border-radius: 4px; }
+  .fx .track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+  .fx .fill { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+  .fx .fill.up { left: 50%; background: var(--high); }
+  .fx .fill.down { right: 50%; background: var(--low); }
+  .fx .val { font-size: .8rem; font-weight: 600; }
+  .fx .val.up { color: var(--high); } .fx .val.down { color: var(--low); } .fx .val.none { color: var(--muted); font-weight: 400; }
+  .legend { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin: -4px 0 12px; }
+  .why .tip { font-size: .82rem; padding: 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); margin-top: 6px; }
+  .why .note { font-size: .74rem; color: var(--muted); margin-top: 10px; }
   .disclaimer { font-size: .78rem; color: var(--muted); margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
   .error { color: var(--high); background: var(--high-bg); padding: 10px; border-radius: 8px; margin-top: 12px; }
   footer { max-width: 1040px; margin: 0 auto; padding: 8px 16px 32px; font-size: .8rem; color: var(--muted); }
@@ -234,6 +250,39 @@ function detailMessage(body) {
   return "Erro ao calcular o risco.";
 }
 
+const pp = (x) => `${x >= 0 ? "+" : "\u2212"}${Math.abs(x * 100).toFixed(1).replace(".", ",")} p.p.`;
+
+function renderWhy(ex, score) {
+  if (!ex) return "";
+  const shown = ex.factors.filter(f => f.provided && Math.abs(f.effect) >= 0.0005);
+  const flat = ex.factors.filter(f => f.provided && Math.abs(f.effect) < 0.0005);
+  const missing = ex.factors.filter(f => !f.provided);
+  const max = Math.max(...shown.map(f => Math.abs(f.effect)), 0.01);
+  const ups = shown.filter(f => f.effect > 0).slice(0, 2).map(f => `<b>${f.label.split(" (")[0].toLowerCase()}</b> (${pp(f.effect)})`);
+  const downs = shown.filter(f => f.effect < 0).slice(0, 2).map(f => `<b>${f.label.split(" (")[0].toLowerCase()}</b> (${pp(f.effect)})`);
+  const bits = [];
+  if (ups.length) bits.push(`Aumentam o risco: ${ups.join(" e ")}.`);
+  if (downs.length) bits.push(`Reduzem o risco: ${downs.join(" e ")}.`);
+  if (!bits.length) bits.push("Com os dados indicados, nenhum grupo se afasta muito do perfil típico da amostra.");
+  const rows = shown.map(f => {
+    const w = Math.abs(f.effect) / max * 50, up = f.effect > 0;
+    return `<div class="fx"><div class="name">${f.label}</div>
+      <div class="track"><div class="fill ${up ? "up" : "down"}" style="width:${w}%"></div></div>
+      <div class="val ${up ? "up" : "down"}">${pp(f.effect)}</div></div>`;
+  }).join("");
+  return `
+    <div class="why">
+      <h2>Porque este resultado?</h2>
+      <p class="sub">Uma pessoa típica da amostra (referência) teria <b>${(ex.baseline_score * 100).toFixed(1).replace(".", ",")}%</b>;
+        esta pessoa tem <b>${(score * 100).toFixed(1).replace(".", ",")}%</b>. ${bits.join(" ")}</p>
+      ${rows ? `<div class="legend"><span>\u2190 reduz o risco</span><span>aumenta o risco \u2192</span></div>${rows}` : ""}
+      ${flat.length ? `<p class="sub">Sem efeito relevante (próximo do típico): ${flat.map(f => f.label.split(" (")[0].toLowerCase()).join(", ")}.</p>` : ""}
+      ${missing.length ? `<p class="tip">Não preenchido (o modelo assumiu valores típicos): ${missing.map(f => f.label.split(" (")[0].toLowerCase()).join(", ")}. Preencher estes campos torna a estimativa mais fiável.</p>` : ""}
+      ${shown.some(f => f.key === "tobacco" && f.effect < 0) ? `<p class="tip">O tabaco aparece a reduzir o risco porque, nestes dados, fumadores tinham menos diabetes (provável efeito de idade, rendimento e selecção da amostra). <b>Não significa que fumar proteja.</b></p>` : ""}
+      <p class="note">${ex.note}</p>
+    </div>`;
+}
+
 function renderResult(data, thresholds, metrics) {
   const r = data.result, lv = LEVELS[r.risk_level];
   const pct = (r.risk_score * 100);
@@ -253,6 +302,7 @@ function renderResult(data, thresholds, metrics) {
     </div>
     <div class="scale"><span style="left:0">0%</span><span style="left:${pLow}%">${(thresholds.low * 100).toFixed(1)}%</span><span style="left:${pHigh}%">${(thresholds.high * 100).toFixed(1)}%</span></div>
     <p class="advice">${lv.advice}</p>
+    ${renderWhy(data.explanation, r.risk_score)}
     <dl class="meta">
       <dt>Modelo</dt><dd>${data.model.model_id} v${data.model.model_version}</dd>
       <dt>Limiar de rastreio</dt><dd>${(thresholds.low * 100).toFixed(1)}% (alvo: apanhar ~80% dos casos)</dd>
@@ -289,7 +339,7 @@ $("form").addEventListener("submit", async (ev) => {
   try {
     const res = await fetch(`${API}/predict`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model_name: model, features: buildFeatures() }),
+      body: JSON.stringify({ model_name: model, features: buildFeatures(), explain: true }),
     });
     const body = await res.json();
     if (!res.ok) { showError(detailMessage(body)); return; }

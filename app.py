@@ -141,7 +141,7 @@ class PredictRequest(BaseModel):
     model_name: ModelName = Field(..., description="Modelo a usar: lr|rf|lgbm|xgb")
     subject_id: Optional[str] = Field(None, description="ID do utente/participante (opcional)")
     features: Features
-    explain: bool = Field(False, description="Reservado para futuro (explicabilidade)")
+    explain: bool = Field(False, description="Se true, devolve o efeito de cada grupo de variáveis no risco")
     persist: bool = Field(False, description="Reservado para futuro (auditoria/armazenamento)")
 
 
@@ -157,11 +157,27 @@ class PredictResult(BaseModel):
     risk_level: RiskLevel
 
 
+class FactorEffect(BaseModel):
+    key: str
+    label: str
+    effect: float = Field(..., description="Variação do risco (pontos percentuais, em fracção 0-1) face à pessoa de referência")
+    provided: bool = Field(..., description="False se o utilizador não indicou nenhum dos campos do grupo")
+    features: List[str]
+
+
+class Explanation(BaseModel):
+    method: str
+    baseline_score: float = Field(..., description="Risco da pessoa de referência (medianas da amostra de treino)")
+    factors: List[FactorEffect]
+    note: str
+
+
 class PredictResponse(BaseModel):
     request_id: str
     model: ModelRef
     subject_id: Optional[str]
     result: PredictResult
+    explanation: Optional[Explanation] = None
     created_at: str
 
 
@@ -298,6 +314,58 @@ def predict_one(model: Any, model_name: str, features: Features) -> tuple[int, f
     return prediction, risk_score, score_to_level(risk_score, model_name)
 
 
+# Grupos de variáveis para a explicação (variáveis muito correlacionadas são explicadas em conjunto)
+FACTOR_GROUPS: List[tuple[str, str, List[str]]] = [
+    ("age", "Idade", ["age"]),
+    ("sex", "Sexo", ["sex_male"]),
+    ("education", "Escolaridade", ["education_years"]),
+    ("body", "Medidas corporais (peso, altura, cintura)",
+     ["height_cm", "weight_kg", "bmi", "waist_cm", "waist_height_ratio"]),
+    ("bp", "Tensão arterial e hipertensão", ["sbp", "dbp", "bp_meds", "told_hypertension"]),
+    ("tobacco", "Tabaco", ["smoker_current", "smokeless_current"]),
+    ("alcohol", "Álcool", ["alcohol_past12m", "alcohol_days_month"]),
+    ("diet", "Fruta e vegetais", ["fruit_servings_day", "veg_servings_day"]),
+    ("activity", "Actividade física e sedentarismo", ["met_min_week", "sedentary_hours_day"]),
+]
+EXPLAIN_NOTE = (
+    "Efeito aproximado de cada grupo: diferença entre o risco da pessoa e o risco que o modelo daria "
+    "se esse grupo tivesse os valores típicos (mediana) da amostra de treino. Os efeitos não somam "
+    "exactamente ao total e indicam associações estatísticas, não causas."
+)
+_REFERENCE_CACHE: Dict[str, pd.Series] = {}
+
+
+def reference_row(model: Any, model_name: str) -> pd.Series:
+    """Valores típicos (medianas de treino) usados pelo imputador do modelo."""
+    if model_name not in _REFERENCE_CACHE:
+        imputer = model.calibrated_classifiers_[0].estimator.named_steps["imputer"]
+        _REFERENCE_CACHE[model_name] = pd.Series(imputer.statistics_, index=FEATURE_ORDER)
+    return _REFERENCE_CACHE[model_name]
+
+
+def explain_one(model: Any, model_name: str, features: Features, risk_score: float) -> Explanation:
+    """
+    Explicação por oclusão de grupos: para cada grupo, substitui os seus valores pelos de referência
+    e mede quanto o risco muda. Funciona igual para os 4 modelos.
+    """
+    df = features.to_frame()
+    ref = reference_row(model, model_name)
+    rows = [ref.to_frame().T.astype(float)]
+    for _, _, cols in FACTOR_GROUPS:
+        alt = df.copy()
+        alt[cols] = ref[cols].values
+        rows.append(alt)
+    probs = model.predict_proba(pd.concat(rows, ignore_index=True))[:, 1]
+    baseline, without = float(probs[0]), probs[1:]
+    factors = []
+    for (key, label, cols), p_without in zip(FACTOR_GROUPS, without):
+        provided = bool(df[cols].notna().any(axis=1).iloc[0])
+        effect = float(risk_score - p_without) if provided else 0.0
+        factors.append(FactorEffect(key=key, label=label, effect=effect, provided=provided, features=cols))
+    factors.sort(key=lambda f: abs(f.effect), reverse=True)
+    return Explanation(method="occlusion-by-group", baseline_score=baseline, factors=factors, note=EXPLAIN_NOTE)
+
+
 # -----------------------------------------------------------------------------
 # App
 # -----------------------------------------------------------------------------
@@ -368,6 +436,7 @@ def predict(req: PredictRequest, model_dependency: Dict[str, Any] = Depends(get_
 
     try:
         pred, risk_score, risk_level = predict_one(model, req.model_name, req.features)
+        explanation = explain_one(model, req.model_name, req.features, risk_score) if req.explain else None
 
         resp = PredictResponse(
             request_id=request_id,
@@ -382,6 +451,7 @@ def predict(req: PredictRequest, model_dependency: Dict[str, Any] = Depends(get_
                 risk_score=risk_score,
                 risk_level=risk_level,
             ),
+            explanation=explanation,
             created_at=created_at,
         )
 
