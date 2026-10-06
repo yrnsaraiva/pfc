@@ -7,250 +7,534 @@
 <link rel="icon" href="data:,">
 <style>
   :root {
-    --bg: #f5f7fa; --card: #ffffff; --text: #1c2733; --muted: #5b6b7b; --line: #dbe2ea;
-    --accent: #1f6feb; --low: #1a7f4b; --mid: #b7791f; --high: #c0392b;
+    --bg: #f3f6fb; --card: #ffffff; --text: #17212b; --muted: #5d6c7c; --line: #dde4ee; --soft: #f6f8fc;
+    --accent: #0f766e; --accent-2: #1d4ed8; --accent-soft: #e0f2f1; --on-accent: #ffffff;
+    --low: #1a7f4b; --mid: #b7791f; --high: #c0392b;
     --low-bg: #e6f4ec; --mid-bg: #fdf3dc; --high-bg: #fbe9e7;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 8px 24px rgba(16, 24, 40, .06);
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0f1720; --card: #17212c; --text: #e6edf3; --muted: #9fb0c0; --line: #2a3745;
-      --accent: #58a6ff; --low: #4cc38a; --mid: #e3b341; --high: #ff7b72;
+      --bg: #0d141c; --card: #16202b; --text: #e8eef5; --muted: #9db0c3; --line: #263444; --soft: #1a2633;
+      --accent: #2dd4bf; --accent-2: #60a5fa; --accent-soft: #123a38; --on-accent: #06201d;
+      --low: #4cc38a; --mid: #e3b341; --high: #ff7b72;
       --low-bg: #12301f; --mid-bg: #3a2f12; --high-bg: #3d1a17;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
     }
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body { margin: 0; background: var(--bg); color: var(--text);
          font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { padding: 28px 16px 8px; max-width: 1040px; margin: 0 auto; }
-  h1 { margin: 0 0 4px; font-size: 1.6rem; }
-  header p { margin: 0; color: var(--muted); }
-  main { max-width: 1040px; margin: 0 auto; padding: 16px; display: grid; gap: 16px;
-         grid-template-columns: 1fr; }
-  @media (min-width: 900px) { main { grid-template-columns: 1.4fr 1fr; align-items: start; } }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
-  fieldset { border: 0; padding: 0; margin: 0 0 20px; }
-  legend { font-weight: 600; margin-bottom: 10px; padding: 0; }
-  .grid { display: grid; gap: 12px; grid-template-columns: repeat(2, 1fr); }
-  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
-  label { display: block; font-size: .88rem; color: var(--muted); margin-bottom: 4px; }
-  label .req { color: var(--high); }
-  input, select { width: 100%; padding: 9px 10px; font: inherit; color: var(--text);
-                  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; }
-  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .hint { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------- hero ---------- */
+  .hero { margin: 16px auto 0; max-width: 1100px; padding: 0 16px; }
+  .hero-in { border-radius: 18px; padding: 26px 24px; color: #fff; position: relative; overflow: hidden;
+             background: linear-gradient(135deg, #0f766e 0%, #1d4ed8 100%); box-shadow: var(--shadow); }
+  .hero-in::after { content: ""; position: absolute; right: -60px; top: -60px; width: 240px; height: 240px; border-radius: 50%;
+                    background: rgba(255, 255, 255, .09); }
+  .pill { display: inline-block; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; font-weight: 700;
+          padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, .2); margin-bottom: 8px; }
+  .hero h1 { margin: 0 0 6px; font-size: clamp(1.4rem, 3.4vw, 2rem); line-height: 1.2; }
+  .hero p { margin: 0; max-width: 640px; opacity: .92; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 940px) { main { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); align-items: start; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+
+  /* ---------- stepper ---------- */
+  .stepper { display: flex; align-items: center; padding: 18px 20px 6px; gap: 0; }
+  .step { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 0; cursor: pointer; color: var(--muted);
+          font: inherit; text-align: left; }
+  .step .dot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; flex: none;
+               border: 2px solid var(--line); background: var(--card); transition: all .2s; }
+  .step .lbl { font-size: .86rem; line-height: 1.2; }
+  .step .lbl small { display: block; color: var(--muted); font-size: .72rem; }
+  .step.active { color: var(--text); }
+  .step.active .dot { border-color: var(--accent); background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .step.done .dot { border-color: var(--accent); color: var(--accent); }
+  .step.done .dot::before { content: "\2713"; }
+  .step.done .dot span { display: none; }
+  .link { flex: 1; height: 2px; background: var(--line); margin: 0 10px; border-radius: 2px; min-width: 12px; }
+  .link.on { background: var(--accent); }
+  @media (max-width: 560px) { .step .lbl { display: none; } .step.active .lbl { display: block; } .step.active .lbl small { display: none; } }
+
+  .meter { display: flex; align-items: center; gap: 10px; padding: 8px 20px 0; font-size: .8rem; color: var(--muted); }
+  .meter .track { flex: 1; height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; }
+  .meter .fillbar { height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .3s; }
+
+  /* ---------- panels ---------- */
+  form { padding: 8px 20px 20px; }
+  .panel { display: none; animation: fade .25s ease; }
+  .panel.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .panel { animation: none; } .meter .fillbar, .step .dot { transition: none; } html { scroll-behavior: auto; } }
+  .panel h2 { margin: 14px 0 2px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+  .panel h2 svg { color: var(--accent); }
+  .panel > .lead { margin: 0 0 16px; color: var(--muted); font-size: .9rem; }
+  .group { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 14px; background: var(--soft); }
+  .group > .gt { font-weight: 600; font-size: .92rem; margin: 0 0 10px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .group > .gt small { font-weight: 400; color: var(--muted); font-size: .76rem; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 560px) { .grid, .grid.three { grid-template-columns: 1fr; } }
   .full { grid-column: 1 / -1; }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  button { font: inherit; cursor: pointer; border-radius: 8px; padding: 10px 18px; border: 1px solid var(--line);
-           background: var(--card); color: var(--text); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  label.l, .l { display: block; font-size: .85rem; font-weight: 500; margin-bottom: 5px; }
+  .l .req { color: var(--high); }
+  .help { font-size: .76rem; color: var(--muted); margin-top: 4px; }
+  .err { font-size: .76rem; color: var(--high); margin-top: 4px; min-height: 0; }
+
+  .inp { position: relative; }
+  .inp input, .inp select { width: 100%; padding: 10px 44px 10px 12px; font: inherit; color: var(--text); background: var(--card);
+         border: 1px solid var(--line); border-radius: 10px; transition: border-color .15s, box-shadow .15s; }
+  .inp select { padding-right: 12px; }
+  .inp .unit { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .8rem; pointer-events: none; }
+  input:focus-visible, select:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .inp.bad input { border-color: var(--high); }
+
+  /* segmented radios */
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+  .seg label { position: relative; }
+  .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+  .seg span { display: block; text-align: center; padding: 9px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+              font-size: .88rem; transition: all .15s; }
+  .seg input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .seg input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .seg.sex span { padding: 16px 8px; font-size: .98rem; }
+  @media (max-width: 380px) { .seg { grid-auto-flow: row; } }
+
+  /* sliders */
+  .range { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+  input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+  .bubble { min-width: 3.2em; text-align: center; font-weight: 700; font-size: .9rem; padding: 4px 8px; border-radius: 8px;
+            background: var(--card); border: 1px solid var(--line); }
+  .bubble.off { color: var(--muted); font-weight: 400; }
+
+  /* live stats */
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .stat { flex: 1 1 150px; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 8px 12px; }
+  .stat small { display: block; color: var(--muted); font-size: .72rem; }
+  .stat b { font-size: 1.15rem; }
+  .stat em { font-style: normal; font-size: .78rem; margin-left: 6px; padding: 1px 8px; border-radius: 999px; }
+  .ok { color: var(--low); background: var(--low-bg); } .warn { color: var(--mid); background: var(--mid-bg); } .bad2 { color: var(--high); background: var(--high-bg); }
+  .stat.hide { display: none; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips label { position: relative; }
+  .chips input { position: absolute; opacity: 0; inset: 0; cursor: pointer; margin: 0; }
+  .chips span { display: block; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: .84rem; transition: all .15s; }
+  .chips input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+  .chips input:focus-visible + span { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .note-box { font-size: .82rem; color: var(--muted); border-left: 3px solid var(--accent); padding: 4px 0 4px 10px; margin-top: 10px; }
+
+  /* nav */
+  .nav { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding-top: 6px; }
+  .nav .left, .nav .right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; padding: 10px 18px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 700; }
+  button.primary:hover { filter: brightness(1.06); }
+  button.ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 10px 8px; }
   button:disabled { opacity: .6; cursor: wait; }
-  #result { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; }
-  @media (max-width: 899px) { #result { position: static; max-height: none; } }
-  .empty { color: var(--muted); }
+  button:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 1px; }
+  details.adv { margin-top: 14px; font-size: .86rem; }
+  details.adv summary { cursor: pointer; color: var(--muted); }
+  details.adv .inp { max-width: 320px; margin-top: 8px; }
+  #error { color: var(--high); background: var(--high-bg); padding: 10px 12px; border-radius: 10px; margin-top: 12px; font-size: .9rem; }
+
+  /* ---------- result ---------- */
+  #result { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; padding: 22px; }
+  @media (max-width: 939px) { #result { position: static; max-height: none; } }
+  .placeholder { text-align: center; color: var(--muted); padding: 10px 6px; }
+  .placeholder svg { color: var(--accent); opacity: .85; margin-bottom: 6px; }
+  .placeholder h3 { margin: 0 0 6px; color: var(--text); }
   .badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: .9rem; }
-  .low  { color: var(--low);  background: var(--low-bg); }
-  .mid  { color: var(--mid);  background: var(--mid-bg); }
-  .high { color: var(--high); background: var(--high-bg); }
-  .score { font-size: 2.6rem; font-weight: 700; margin: 8px 0 0; line-height: 1.1; }
-  .bar { position: relative; height: 12px; border-radius: 6px; margin: 16px 0 6px; }
-  .bar .seg { position: absolute; top: 0; bottom: 0; opacity: .4; }
-  .bar .seg:first-child { border-radius: 6px 0 0 6px; } .bar .seg:last-of-type { border-radius: 0 6px 6px 0; }
-  .marker { position: absolute; top: -4px; width: 4px; height: 20px; background: var(--text); border-radius: 2px;
-            transform: translateX(-2px); }
+  .low { color: var(--low); background: var(--low-bg); } .mid { color: var(--mid); background: var(--mid-bg); } .high { color: var(--high); background: var(--high-bg); }
+  .score { font-size: 2.8rem; font-weight: 800; margin: 8px 0 0; line-height: 1.05; }
+  .sub0 { color: var(--muted); }
+  .bar { position: relative; height: 12px; border-radius: 6px; margin: 18px 0 6px; }
+  .bar .s { position: absolute; top: 0; bottom: 0; opacity: .42; }
+  .bar .s:first-child { border-radius: 6px 0 0 6px; } .bar .s:nth-child(3) { border-radius: 0 6px 6px 0; }
+  .marker { position: absolute; top: -5px; width: 4px; height: 22px; background: var(--text); border-radius: 2px; transform: translateX(-2px); }
   .scale { position: relative; height: 1.2em; font-size: .75rem; color: var(--muted); }
-  .scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
-  .scale span:first-child { transform: none; }
-  .advice { margin: 14px 0 0; padding: 12px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); }
-  .meta { margin-top: 14px; font-size: .82rem; color: var(--muted); }
-  .meta dt { float: left; clear: left; width: 9.5em; }
-  .meta dd { margin: 0 0 2px 9.5em; }
+  .scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; } .scale span:first-child { transform: none; }
+  .advice { margin: 14px 0 0; padding: 12px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); }
   .why { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
   .why h2 { font-size: 1.05rem; margin: 0 0 4px; }
   .why .sub { font-size: .85rem; color: var(--muted); margin: 0 0 12px; }
-  .fx { display: grid; grid-template-columns: 1fr; gap: 2px; margin-bottom: 10px; }
+  .fx { display: grid; gap: 2px; margin-bottom: 10px; }
   .fx .name { font-size: .85rem; }
-  .fx .track { position: relative; height: 16px; background: var(--bg); border-radius: 4px; }
-  .fx .track::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
-  .fx .fill { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
-  .fx .fill.up { left: 50%; background: var(--high); }
-  .fx .fill.down { right: 50%; background: var(--low); }
-  .fx .val { font-size: .8rem; font-weight: 600; }
-  .fx .val.up { color: var(--high); } .fx .val.down { color: var(--low); } .fx .val.none { color: var(--muted); font-weight: 400; }
+  .fx .t { position: relative; height: 16px; background: var(--soft); border-radius: 4px; }
+  .fx .t::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+  .fx .f { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+  .fx .f.up { left: 50%; background: var(--high); } .fx .f.down { right: 50%; background: var(--low); }
+  .fx .val { font-size: .8rem; font-weight: 600; } .fx .val.up { color: var(--high); } .fx .val.down { color: var(--low); }
   .legend { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin: -4px 0 12px; }
-  .why .tip { font-size: .82rem; padding: 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); margin-top: 6px; }
+  .why .tip { font-size: .82rem; padding: 10px; border-radius: 10px; background: var(--soft); border: 1px solid var(--line); margin-top: 6px; }
   .why .note { font-size: .74rem; color: var(--muted); margin-top: 10px; }
+  .meta { margin: 14px 0 0; font-size: .82rem; color: var(--muted); }
+  .meta dt { float: left; clear: left; width: 9.5em; } .meta dd { margin: 0 0 2px 9.5em; }
   .disclaimer { font-size: .78rem; color: var(--muted); margin-top: 14px; border-top: 1px solid var(--line); padding-top: 10px; }
-  .error { color: var(--high); background: var(--high-bg); padding: 10px; border-radius: 8px; margin-top: 12px; }
-  footer { max-width: 1040px; margin: 0 auto; padding: 8px 16px 32px; font-size: .8rem; color: var(--muted); }
+  footer { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; font-size: .8rem; color: var(--muted); }
+  a { color: var(--accent-2); }
 </style>
 </head>
 <body>
-<header>
-  <h1>Rastreio de risco de diabetes</h1>
-  <p>Protótipo treinado com os inquéritos STEPS de Moçambique (2005 e 2014). Estima o risco sem análise de sangue.</p>
-</header>
+<div class="hero">
+  <div class="hero-in">
+    <span class="pill">Protótipo</span>
+    <h1>Rastreio de risco de diabetes</h1>
+    <p>Estime o risco sem análise de sangue, com um modelo treinado nos inquéritos STEPS de Moçambique (2005 e 2014). Leva cerca de 2 minutos.</p>
+  </div>
+</div>
 
 <main>
-  <form id="form" class="card" novalidate>
-    <fieldset>
-      <legend>Dados da pessoa</legend>
-      <div class="grid">
-        <div>
-          <label for="age">Idade (anos) <span class="req">*</span></label>
-          <input id="age" type="number" min="25" max="64" step="1" required>
-          <div class="hint">O modelo foi treinado com 25 a 64 anos.</div>
-        </div>
-        <div>
-          <label for="sex">Sexo <span class="req">*</span></label>
-          <select id="sex" required>
-            <option value="">Seleccione…</option>
-            <option value="0">Feminino</option>
-            <option value="1">Masculino</option>
-          </select>
-        </div>
-        <div>
-          <label for="education">Anos de escolaridade</label>
-          <input id="education" type="number" min="0" max="25" step="1">
-        </div>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Medições</legend>
-      <div class="grid">
-        <div><label for="height">Altura (cm)</label><input id="height" type="number" min="100" max="230" step="0.1"></div>
-        <div><label for="weight">Peso (kg)</label><input id="weight" type="number" min="25" max="250" step="0.1"></div>
-        <div>
-          <label for="waist">Cintura (cm)</label><input id="waist" type="number" min="40" max="200" step="0.1">
-          <div class="hint">Ajuda muito: é das variáveis mais informativas.</div>
-        </div>
-        <div><label for="sbp">Tensão sistólica (mmHg)</label><input id="sbp" type="number" min="70" max="260" step="1"></div>
-        <div><label for="dbp">Tensão diastólica (mmHg)</label><input id="dbp" type="number" min="40" max="150" step="1"></div>
-        <div>
-          <label for="told_hyp">Já lhe disseram que tem hipertensão?</label>
-          <select id="told_hyp"><option value="0">Não</option><option value="1">Sim</option></select>
-        </div>
-        <div>
-          <label for="bp_meds">Toma medicação para a tensão?</label>
-          <select id="bp_meds"><option value="">Não sei / não respondeu</option><option value="0">Não</option><option value="1">Sim</option></select>
-        </div>
-      </div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Estilo de vida</legend>
-      <div class="grid">
-        <div>
-          <label for="smoker">Fuma actualmente?</label>
-          <select id="smoker"><option value="0">Não</option><option value="1">Sim</option></select>
-        </div>
-        <div>
-          <label for="smokeless">Usa tabaco sem fumo?</label>
-          <select id="smokeless"><option value="0">Não</option><option value="1">Sim</option></select>
-        </div>
-        <div class="full">
-          <label for="alcohol">Consumo de álcool (últimos 12 meses)</label>
-          <select id="alcohol">
-            <option value="none">Não bebeu</option>
-            <option value="0.5">Menos de 1 vez por mês</option>
-            <option value="2">1 a 3 dias por mês</option>
-            <option value="6">1 a 2 dias por semana</option>
-            <option value="14">3 a 4 dias por semana</option>
-            <option value="22">5 a 6 dias por semana</option>
-            <option value="30">Todos os dias</option>
-          </select>
-        </div>
-        <div><label for="fruit_days">Fruta: dias por semana</label><input id="fruit_days" type="number" min="0" max="7" step="1"></div>
-        <div><label for="fruit_serv">Fruta: porções por dia</label><input id="fruit_serv" type="number" min="0" max="15" step="1"></div>
-        <div><label for="veg_days">Vegetais: dias por semana</label><input id="veg_days" type="number" min="0" max="7" step="1"></div>
-        <div><label for="veg_serv">Vegetais: porções por dia</label><input id="veg_serv" type="number" min="0" max="15" step="1"></div>
-        <div>
-          <label for="vig_min">Actividade física vigorosa (min/semana)</label>
-          <input id="vig_min" type="number" min="0" max="5000" step="5">
-          <div class="hint">Trabalho pesado, correr, futebol…</div>
-        </div>
-        <div>
-          <label for="mod_min">Actividade física moderada (min/semana)</label>
-          <input id="mod_min" type="number" min="0" max="5000" step="5">
-          <div class="hint">Caminhar a bom ritmo, bicicleta, tarefas leves…</div>
-        </div>
-        <div>
-          <label for="sedentary">Tempo sentado (horas/dia)</label>
-          <input id="sedentary" type="number" min="0" max="16" step="0.5">
-        </div>
-      </div>
-    </fieldset>
-
-    <div class="actions">
-      <label for="model" style="margin:0">Modelo</label>
-      <select id="model" style="width:auto"></select>
-      <button class="primary" type="submit" id="btn-calc">Calcular risco</button>
-      <button type="button" id="btn-example">Preencher exemplo</button>
-      <button type="button" id="btn-reset">Limpar</button>
+  <section class="card" aria-label="Formulário">
+    <nav class="stepper" aria-label="Passos">
+      <button type="button" class="step active" data-go="0"><span class="dot"><span>1</span></span><span class="lbl">Perfil<small>quem é a pessoa</small></span></button>
+      <div class="link"></div>
+      <button type="button" class="step" data-go="1"><span class="dot"><span>2</span></span><span class="lbl">Medições<small>corpo e tensão</small></span></button>
+      <div class="link"></div>
+      <button type="button" class="step" data-go="2"><span class="dot"><span>3</span></span><span class="lbl">Estilo de vida<small>hábitos diários</small></span></button>
+    </nav>
+    <div class="meter" aria-live="polite">
+      <span id="meter-txt">Dados opcionais: 0 de 6</span>
+      <div class="track"><div class="fillbar" id="meter-fill"></div></div>
     </div>
-    <div id="error" class="error" hidden></div>
-  </form>
 
-  <section id="result" class="card" aria-live="polite">
-    <p class="empty">Preencha pelo menos a idade e o sexo e carregue em <b>Calcular risco</b>. Quanto mais campos preencher, mais fiável é a estimativa.</p>
+    <form id="form" novalidate autocomplete="off">
+      <!-- ============ PASSO 1 ============ -->
+      <div class="panel active" data-step="0">
+        <h2><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Perfil</h2>
+        <p class="lead">Idade e sexo são obrigatórios. A escolaridade ajuda o modelo.</p>
+
+        <div class="group">
+          <div class="grid">
+            <div class="full">
+              <span class="l">Sexo <span class="req">*</span></span>
+              <div class="seg sex" role="radiogroup" aria-label="Sexo" id="sex-seg">
+                <label><input type="radio" name="sex" value="0"><span>Feminino</span></label>
+                <label><input type="radio" name="sex" value="1"><span>Masculino</span></label>
+              </div>
+              <div class="err" id="err-sex"></div>
+            </div>
+            <div class="full">
+              <label class="l" for="age">Idade <span class="req">*</span></label>
+              <div class="range">
+                <input id="age-range" type="range" min="25" max="64" step="1" value="40" aria-label="Idade (cursor)">
+                <div class="inp" style="width:110px"><input id="age" type="number" inputmode="numeric" min="25" max="64" step="1" placeholder="40" aria-describedby="age-help"><span class="unit">anos</span></div>
+              </div>
+              <div class="help" id="age-help">O modelo foi treinado com pessoas de 25 a 64 anos.</div>
+              <div class="err" id="err-age"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gt">Escolaridade <small>opcional</small></div>
+          <div class="range">
+            <input id="education" type="range" min="0" max="20" step="1" value="0" data-opt="education" aria-label="Anos de escolaridade">
+            <div class="bubble off" id="education-out">não indicado</div>
+          </div>
+          <div class="help" id="education-help">Arraste para indicar os anos de escola concluídos.</div>
+        </div>
+      </div>
+
+      <!-- ============ PASSO 2 ============ -->
+      <div class="panel" data-step="1">
+        <h2><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>Medições</h2>
+        <p class="lead">Todas opcionais, mas a <b>cintura</b> é das informações que mais ajudam.</p>
+
+        <div class="group">
+          <div class="gt">Corpo <small>opcional</small></div>
+          <div class="grid three">
+            <div><label class="l" for="height">Altura</label>
+              <div class="inp"><input id="height" type="number" inputmode="decimal" min="100" max="230" step="0.1" data-opt="body"><span class="unit">cm</span></div><div class="err" id="err-height"></div></div>
+            <div><label class="l" for="weight">Peso</label>
+              <div class="inp"><input id="weight" type="number" inputmode="decimal" min="25" max="250" step="0.1" data-opt="body"><span class="unit">kg</span></div><div class="err" id="err-weight"></div></div>
+            <div><label class="l" for="waist">Cintura</label>
+              <div class="inp"><input id="waist" type="number" inputmode="decimal" min="40" max="200" step="0.1" data-opt="body"><span class="unit">cm</span></div><div class="err" id="err-waist"></div></div>
+          </div>
+          <div class="help">Cintura: medida à volta da barriga, ao nível do umbigo.</div>
+          <div class="stats">
+            <div class="stat hide" id="stat-bmi"><small>IMC (kg/m²)</small><b id="bmi-v"></b><em id="bmi-c"></em></div>
+            <div class="stat hide" id="stat-whtr"><small>Razão cintura/altura</small><b id="whtr-v"></b><em id="whtr-c"></em></div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gt">Tensão arterial <small>opcional</small></div>
+          <div class="grid">
+            <div><label class="l" for="sbp">Sistólica (a “máxima”)</label>
+              <div class="inp"><input id="sbp" type="number" inputmode="numeric" min="70" max="260" step="1" data-opt="bp"><span class="unit">mmHg</span></div><div class="err" id="err-sbp"></div></div>
+            <div><label class="l" for="dbp">Diastólica (a “mínima”)</label>
+              <div class="inp"><input id="dbp" type="number" inputmode="numeric" min="40" max="150" step="1" data-opt="bp"><span class="unit">mmHg</span></div><div class="err" id="err-dbp"></div></div>
+            <div>
+              <span class="l">Já lhe disseram que tem hipertensão?</span>
+              <div class="seg" role="radiogroup"><label><input type="radio" name="told_hyp" value="0" checked><span>Não</span></label><label><input type="radio" name="told_hyp" value="1"><span>Sim</span></label></div>
+            </div>
+            <div>
+              <span class="l">Toma medicação para a tensão?</span>
+              <div class="seg" role="radiogroup"><label><input type="radio" name="bp_meds" value="" checked><span>Não sei</span></label><label><input type="radio" name="bp_meds" value="0"><span>Não</span></label><label><input type="radio" name="bp_meds" value="1"><span>Sim</span></label></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ PASSO 3 ============ -->
+      <div class="panel" data-step="2">
+        <h2><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.4-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>Estilo de vida</h2>
+        <p class="lead">Hábitos habituais do último ano.</p>
+
+        <div class="group">
+          <div class="gt">Tabaco</div>
+          <div class="grid">
+            <div><span class="l">Fuma actualmente?</span>
+              <div class="seg"><label><input type="radio" name="smoker" value="0" checked><span>Não</span></label><label><input type="radio" name="smoker" value="1"><span>Sim</span></label></div></div>
+            <div><span class="l">Usa tabaco sem fumo?</span>
+              <div class="seg"><label><input type="radio" name="smokeless" value="0" checked><span>Não</span></label><label><input type="radio" name="smokeless" value="1"><span>Sim</span></label></div></div>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gt">Álcool <small>últimos 12 meses</small></div>
+          <div class="chips" role="radiogroup" aria-label="Consumo de álcool" id="alcohol-chips">
+            <label><input type="radio" name="alcohol" value="none"><span>Não bebeu</span></label>
+            <label><input type="radio" name="alcohol" value="0.5"><span>&lt; 1 vez/mês</span></label>
+            <label><input type="radio" name="alcohol" value="2"><span>1–3 dias/mês</span></label>
+            <label><input type="radio" name="alcohol" value="6"><span>1–2 dias/semana</span></label>
+            <label><input type="radio" name="alcohol" value="14"><span>3–4 dias/semana</span></label>
+            <label><input type="radio" name="alcohol" value="22"><span>5–6 dias/semana</span></label>
+            <label><input type="radio" name="alcohol" value="30"><span>Todos os dias</span></label>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="gt">Alimentação <small>numa semana típica</small></div>
+          <div class="grid">
+            <div class="full"><span class="l">Dias por semana em que come fruta</span>
+              <div class="range"><input type="range" id="fruit_days" min="0" max="7" step="1" value="0" data-opt="diet"><div class="bubble off" id="fruit_days-out">—</div></div></div>
+            <div class="full"><span class="l">Porções de fruta nesses dias</span>
+              <div class="range"><input type="range" id="fruit_serv" min="0" max="10" step="1" value="0" data-opt="diet"><div class="bubble off" id="fruit_serv-out">—</div></div></div>
+            <div class="full"><span class="l">Dias por semana em que come vegetais</span>
+              <div class="range"><input type="range" id="veg_days" min="0" max="7" step="1" value="0" data-opt="diet"><div class="bubble off" id="veg_days-out">—</div></div></div>
+            <div class="full"><span class="l">Porções de vegetais nesses dias</span>
+              <div class="range"><input type="range" id="veg_serv" min="0" max="10" step="1" value="0" data-opt="diet"><div class="bubble off" id="veg_serv-out">—</div></div></div>
+          </div>
+          <div class="note-box">Uma porção ≈ 1 fruta média ou uma chávena de vegetais.</div>
+        </div>
+
+        <div class="group">
+          <div class="gt">Actividade física <small>por semana</small></div>
+          <div class="grid">
+            <div><label class="l" for="vig_min">Vigorosa</label>
+              <div class="inp"><input id="vig_min" type="number" inputmode="numeric" min="0" max="5000" step="5" data-opt="activity"><span class="unit">min</span></div>
+              <div class="help">Trabalho pesado, correr, futebol…</div></div>
+            <div><label class="l" for="mod_min">Moderada</label>
+              <div class="inp"><input id="mod_min" type="number" inputmode="numeric" min="0" max="5000" step="5" data-opt="activity"><span class="unit">min</span></div>
+              <div class="help">Caminhar a bom ritmo, bicicleta, tarefas leves…</div></div>
+            <div class="full"><span class="l">Tempo sentado por dia</span>
+              <div class="range"><input type="range" id="sedentary" min="0" max="16" step="0.5" value="0" data-opt="activity"><div class="bubble off" id="sedentary-out">—</div></div></div>
+          </div>
+          <div class="stats"><div class="stat hide" id="stat-met"><small>Equivalente (MET-min/semana)</small><b id="met-v"></b><em id="met-c"></em></div></div>
+        </div>
+
+        <details class="adv">
+          <summary>Opções avançadas</summary>
+          <label class="l" for="model" style="margin-top:8px">Modelo de previsão</label>
+          <div class="inp"><select id="model"></select></div>
+        </details>
+      </div>
+
+      <div id="error" role="alert" hidden></div>
+      <div class="nav">
+        <div class="left">
+          <button type="button" class="ghost" id="btn-reset">Limpar</button>
+          <button type="button" class="ghost" id="btn-example">Preencher exemplo</button>
+        </div>
+        <div class="right">
+          <button type="button" id="btn-back" hidden>Voltar</button>
+          <button type="button" class="primary" id="btn-next">Seguinte</button>
+          <button type="submit" class="primary" id="btn-calc" hidden>Calcular risco</button>
+        </div>
+      </div>
+    </form>
   </section>
+
+  <section id="result" class="card" aria-live="polite"></section>
 </main>
 
 <footer>
   Ferramenta de apoio ao rastreio, <b>não é um diagnóstico</b>. Resultado indicativo, baseado em associações estatísticas.
-  <a href="/api/v1/docs">Documentação da API</a>
+  Os dados não são guardados. <a href="/api/v1/docs">Documentação da API</a>
 </footer>
 
 <script>
 const API = "/api/v1";
 const $ = (id) => document.getElementById(id);
-const num = (id) => { const v = $(id).value.trim(); return v === "" ? null : Number(v); };
+const fmt = (x, d = 1) => x.toFixed(d).replace(".", ",");
 const LEVELS = {
-  low:  { cls: "low",  label: "Risco baixo",
-          advice: "Risco abaixo do limiar de rastreio. Mantenha hábitos saudáveis e repita a avaliação periodicamente." },
-  medium: { cls: "mid", label: "Risco médio",
-          advice: "Risco acima do limiar de rastreio. Recomenda-se medir a glicemia em jejum numa unidade de saúde." },
-  high: { cls: "high", label: "Risco alto",
-          advice: "Risco bem acima do limiar de rastreio. Recomenda-se medir a glicemia em jejum com prioridade e procurar aconselhamento de saúde." },
+  low:    { cls: "low",  label: "Risco baixo",  advice: "Risco abaixo do limiar de rastreio. Mantenha hábitos saudáveis e repita a avaliação periodicamente." },
+  medium: { cls: "mid",  label: "Risco médio",  advice: "Risco acima do limiar de rastreio. Recomenda-se medir a glicemia em jejum numa unidade de saúde." },
+  high:   { cls: "high", label: "Risco alto",   advice: "Risco bem acima do limiar de rastreio. Recomenda-se medir a glicemia em jejum com prioridade e procurar aconselhamento de saúde." },
 };
+const touched = new Set();           // campos opcionais que o utilizador mexeu
+let step = 0;
+const STEPS = 3;
 
+/* ---------- utilitários de leitura ---------- */
+const numVal = (id) => { const v = $(id).value.trim(); return v === "" ? null : Number(v); };
+const radio = (name) => { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; };
+const inRange = (id) => { const v = numVal(id), el = $(id); return v === null || (v >= Number(el.min) && v <= Number(el.max)); };
+const sliderVal = (id) => (touched.has(id) ? Number($(id).value) : null);
+
+/* ---------- validação inline ---------- */
+function validateField(id) {
+  const el = $(id), box = el.closest(".inp"), err = $("err-" + id);
+  if (!err) return true;
+  const ok = inRange(id);
+  if (box) box.classList.toggle("bad", !ok);
+  err.textContent = ok ? "" : `Valor entre ${el.min} e ${el.max}.`;
+  return ok;
+}
+["age", "height", "weight", "waist", "sbp", "dbp"].forEach(id => $(id).addEventListener("input", () => validateField(id)));
+
+/* ---------- idade: número <-> cursor ---------- */
+$("age-range").addEventListener("input", (e) => { $("age").value = e.target.value; validateField("age"); });
+$("age").addEventListener("input", (e) => { const v = Number(e.target.value); if (v >= 25 && v <= 64) $("age-range").value = v; });
+
+/* ---------- sliders opcionais ---------- */
+const EDU = (v) => v === 0 ? "sem escolaridade" : v <= 7 ? "ensino primário" : v <= 12 ? "ensino secundário" : "ensino superior";
+const sliderText = {
+  education: (v) => `${v} ${v === 1 ? "ano" : "anos"}`,
+  fruit_days: (v) => `${v} d/sem`, veg_days: (v) => `${v} d/sem`,
+  fruit_serv: (v) => `${v} por dia`, veg_serv: (v) => `${v} por dia`,
+  sedentary: (v) => `${fmt(Number(v), v % 1 ? 1 : 0)} h`,
+};
+Object.keys(sliderText).forEach((id) => {
+  $(id).addEventListener("input", () => {
+    touched.add(id);
+    const out = $(id + "-out"); out.textContent = sliderText[id](Number($(id).value)); out.classList.remove("off");
+    if (id === "education") $("education-help").textContent = "Equivale a " + EDU(Number($(id).value)) + ".";
+    refresh();
+  });
+});
+
+/* ---------- indicadores em tempo real ---------- */
+function chip(el, text, cls) { el.textContent = text; el.className = cls; }
+function liveStats() {
+  const h = numVal("height"), w = numVal("weight"), wa = numVal("waist");
+  const okH = h && inRange("height"), okW = w && inRange("weight"), okWa = wa && inRange("waist");
+  $("stat-bmi").classList.toggle("hide", !(okH && okW));
+  if (okH && okW) {
+    const bmi = w / ((h / 100) ** 2);
+    $("bmi-v").textContent = fmt(bmi);
+    chip($("bmi-c"), bmi < 18.5 ? "abaixo do peso" : bmi < 25 ? "normal" : bmi < 30 ? "excesso de peso" : "obesidade",
+         bmi < 18.5 ? "warn" : bmi < 25 ? "ok" : bmi < 30 ? "warn" : "bad2");
+  }
+  $("stat-whtr").classList.toggle("hide", !(okH && okWa));
+  if (okH && okWa) {
+    const r = wa / h;
+    $("whtr-v").textContent = fmt(r, 2);
+    chip($("whtr-c"), r < 0.5 ? "adequada" : r < 0.6 ? "aumentada" : "muito aumentada", r < 0.5 ? "ok" : r < 0.6 ? "warn" : "bad2");
+  }
+  const vig = numVal("vig_min"), mod = numVal("mod_min");
+  $("stat-met").classList.toggle("hide", vig === null && mod === null);
+  if (vig !== null || mod !== null) {
+    const met = 8 * (vig || 0) + 4 * (mod || 0);
+    $("met-v").textContent = met.toLocaleString("pt-PT");
+    chip($("met-c"), met >= 600 ? "cumpre a recomendação da OMS" : "abaixo das 150 min moderadas/semana", met >= 600 ? "ok" : "warn");
+  }
+}
+
+/* ---------- barra de preenchimento ---------- */
+function optionalFilled() {
+  const has = (...ids) => ids.some(i => numVal(i) !== null);
+  return [
+    touched.has("education"),
+    has("height", "weight", "waist"),
+    has("sbp", "dbp"),
+    radio("alcohol") !== null,
+    ["fruit_days", "fruit_serv", "veg_days", "veg_serv"].some(i => touched.has(i)),
+    has("vig_min", "mod_min") || touched.has("sedentary"),
+  ].filter(Boolean).length;
+}
+function refresh() {
+  liveStats();
+  const n = optionalFilled();
+  $("meter-txt").textContent = `Dados opcionais: ${n} de 6`;
+  $("meter-fill").style.width = (n / 6 * 100) + "%";
+}
+document.querySelectorAll("input, select").forEach(el => el.addEventListener("input", refresh));
+document.querySelectorAll("input[name=alcohol]").forEach(el => el.addEventListener("change", refresh));
+
+/* ---------- passos ---------- */
+function showStep(n) {
+  step = Math.max(0, Math.min(STEPS - 1, n));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("active", Number(p.dataset.step) === step));
+  document.querySelectorAll(".step").forEach((s, i) => { s.classList.toggle("active", i === step); s.classList.toggle("done", i < step); });
+  document.querySelectorAll(".link").forEach((l, i) => l.classList.toggle("on", i < step));
+  $("btn-back").hidden = step === 0;
+  $("btn-next").hidden = step === STEPS - 1;
+  $("btn-calc").hidden = step !== STEPS - 1;
+  showError("");
+}
+function validateStep1() {
+  let ok = true;
+  const age = numVal("age");
+  $("err-sex").textContent = radio("sex") === null ? "Seleccione o sexo." : "";
+  if (radio("sex") === null) ok = false;
+  if (age === null) { $("err-age").textContent = "Indique a idade."; $("age").closest(".inp").classList.add("bad"); ok = false; }
+  else if (!validateField("age")) ok = false;
+  return ok;
+}
+function validateAllNumbers() { return ["age", "height", "weight", "waist", "sbp", "dbp"].every(validateField); }
+function goto(n) {
+  if (n > 0 && !validateStep1()) { showStep(0); return; }
+  showStep(n);
+  $("form").scrollIntoView({ block: "nearest" });
+}
+document.querySelectorAll(".step").forEach(s => s.addEventListener("click", () => goto(Number(s.dataset.go))));
+$("btn-next").addEventListener("click", () => goto(step + 1));
+$("btn-back").addEventListener("click", () => goto(step - 1));
+
+/* ---------- construção do pedido ---------- */
 function servings(days, perDay) {
   if (days === null) return null;
   if (days === 0) return 0;
   return perDay === null ? null : (days * perDay) / 7;
 }
-
 function buildFeatures() {
-  const f = { age: num("age"), sex_male: Number($("sex").value) };
-  const put = (k, v) => { if (v !== null && !Number.isNaN(v)) f[k] = v; };
-  put("education_years", num("education"));
-  put("height_cm", num("height")); put("weight_kg", num("weight")); put("waist_cm", num("waist"));
-  put("sbp", num("sbp")); put("dbp", num("dbp"));
-  f.told_hypertension = Number($("told_hyp").value);
-  if ($("bp_meds").value !== "") f.bp_meds = Number($("bp_meds").value);
-  f.smoker_current = Number($("smoker").value);
-  f.smokeless_current = Number($("smokeless").value);
-  const alc = $("alcohol").value;
-  f.alcohol_past12m = alc === "none" ? 0 : 1;
-  f.alcohol_days_month = alc === "none" ? 0 : Number(alc);
-  put("fruit_servings_day", servings(num("fruit_days"), num("fruit_serv")));
-  put("veg_servings_day", servings(num("veg_days"), num("veg_serv")));
-  const vig = num("vig_min"), mod = num("mod_min");
+  const f = { age: numVal("age"), sex_male: Number(radio("sex")) };
+  const put = (k, v) => { if (v !== null && v !== undefined && !Number.isNaN(v)) f[k] = v; };
+  put("education_years", sliderVal("education"));
+  put("height_cm", numVal("height")); put("weight_kg", numVal("weight")); put("waist_cm", numVal("waist"));
+  put("sbp", numVal("sbp")); put("dbp", numVal("dbp"));
+  f.told_hypertension = Number(radio("told_hyp"));
+  if (radio("bp_meds") !== "") f.bp_meds = Number(radio("bp_meds"));
+  f.smoker_current = Number(radio("smoker"));
+  f.smokeless_current = Number(radio("smokeless"));
+  const alc = radio("alcohol");
+  if (alc !== null) { f.alcohol_past12m = alc === "none" ? 0 : 1; f.alcohol_days_month = alc === "none" ? 0 : Number(alc); }
+  put("fruit_servings_day", servings(sliderVal("fruit_days"), sliderVal("fruit_serv")));
+  put("veg_servings_day", servings(sliderVal("veg_days"), sliderVal("veg_serv")));
+  const vig = numVal("vig_min"), mod = numVal("mod_min");
   if (vig !== null || mod !== null) f.met_min_week = 8 * (vig || 0) + 4 * (mod || 0);
-  put("sedentary_hours_day", num("sedentary"));
+  put("sedentary_hours_day", sliderVal("sedentary"));
   return f;
 }
 
+/* ---------- resultado ---------- */
 function showError(msg) { const e = $("error"); e.textContent = msg; e.hidden = !msg; }
-
 function detailMessage(body) {
   const d = body && body.detail;
   if (Array.isArray(d)) return d.map(x => `${(x.loc || []).slice(-1)[0]}: ${x.msg}`).join("; ");
   if (d && d.message) return d.message;
   return "Erro ao calcular o risco.";
 }
-
-const pp = (x) => `${x >= 0 ? "+" : "\u2212"}${Math.abs(x * 100).toFixed(1).replace(".", ",")} p.p.`;
+const pp = (x) => `${x >= 0 ? "+" : "−"}${fmt(Math.abs(x * 100))} p.p.`;
+const short = (f) => f.label.split(" (")[0].toLowerCase();
 
 function renderWhy(ex, score) {
   if (!ex) return "";
@@ -258,26 +542,23 @@ function renderWhy(ex, score) {
   const flat = ex.factors.filter(f => f.provided && Math.abs(f.effect) < 0.0005);
   const missing = ex.factors.filter(f => !f.provided);
   const max = Math.max(...shown.map(f => Math.abs(f.effect)), 0.01);
-  const ups = shown.filter(f => f.effect > 0).slice(0, 2).map(f => `<b>${f.label.split(" (")[0].toLowerCase()}</b> (${pp(f.effect)})`);
-  const downs = shown.filter(f => f.effect < 0).slice(0, 2).map(f => `<b>${f.label.split(" (")[0].toLowerCase()}</b> (${pp(f.effect)})`);
+  const top = (arr) => arr.slice(0, 2).map(f => `<b>${short(f)}</b> (${pp(f.effect)})`).join(" e ");
+  const ups = shown.filter(f => f.effect > 0), downs = shown.filter(f => f.effect < 0);
   const bits = [];
-  if (ups.length) bits.push(`Aumentam o risco: ${ups.join(" e ")}.`);
-  if (downs.length) bits.push(`Reduzem o risco: ${downs.join(" e ")}.`);
+  if (ups.length) bits.push(`Aumentam o risco: ${top(ups)}.`);
+  if (downs.length) bits.push(`Reduzem o risco: ${top(downs)}.`);
   if (!bits.length) bits.push("Com os dados indicados, nenhum grupo se afasta muito do perfil típico da amostra.");
   const rows = shown.map(f => {
     const w = Math.abs(f.effect) / max * 50, up = f.effect > 0;
-    return `<div class="fx"><div class="name">${f.label}</div>
-      <div class="track"><div class="fill ${up ? "up" : "down"}" style="width:${w}%"></div></div>
-      <div class="val ${up ? "up" : "down"}">${pp(f.effect)}</div></div>`;
+    return `<div class="fx"><div class="name">${f.label}</div><div class="t"><div class="f ${up ? "up" : "down"}" style="width:${w}%"></div></div><div class="val ${up ? "up" : "down"}">${pp(f.effect)}</div></div>`;
   }).join("");
   return `
     <div class="why">
       <h2>Porque este resultado?</h2>
-      <p class="sub">Uma pessoa típica da amostra (referência) teria <b>${(ex.baseline_score * 100).toFixed(1).replace(".", ",")}%</b>;
-        esta pessoa tem <b>${(score * 100).toFixed(1).replace(".", ",")}%</b>. ${bits.join(" ")}</p>
-      ${rows ? `<div class="legend"><span>\u2190 reduz o risco</span><span>aumenta o risco \u2192</span></div>${rows}` : ""}
-      ${flat.length ? `<p class="sub">Sem efeito relevante (próximo do típico): ${flat.map(f => f.label.split(" (")[0].toLowerCase()).join(", ")}.</p>` : ""}
-      ${missing.length ? `<p class="tip">Não preenchido (o modelo assumiu valores típicos): ${missing.map(f => f.label.split(" (")[0].toLowerCase()).join(", ")}. Preencher estes campos torna a estimativa mais fiável.</p>` : ""}
+      <p class="sub">Uma pessoa típica da amostra (referência) teria <b>${fmt(ex.baseline_score * 100)}%</b>; esta pessoa tem <b>${fmt(score * 100)}%</b>. ${bits.join(" ")}</p>
+      ${rows ? `<div class="legend"><span>← reduz o risco</span><span>aumenta o risco →</span></div>${rows}` : ""}
+      ${flat.length ? `<p class="sub">Sem efeito relevante (próximo do típico): ${flat.map(short).join(", ")}.</p>` : ""}
+      ${missing.length ? `<p class="tip">Não preenchido (o modelo assumiu valores típicos): ${missing.map(short).join(", ")}. Preencher estes campos torna a estimativa mais fiável.</p>` : ""}
       ${shown.some(f => f.key === "tobacco" && f.effect < 0) ? `<p class="tip">O tabaco aparece a reduzir o risco porque, nestes dados, fumadores tinham menos diabetes (provável efeito de idade, rendimento e selecção da amostra). <b>Não significa que fumar proteja.</b></p>` : ""}
       <p class="note">${ex.note}</p>
     </div>`;
@@ -285,57 +566,58 @@ function renderWhy(ex, score) {
 
 function renderResult(data, thresholds, metrics) {
   const r = data.result, lv = LEVELS[r.risk_level];
-  const pct = (r.risk_score * 100);
   const cap = Math.max(thresholds.high * 2.5, 0.25);
   const at = (v) => Math.min(v / cap, 1) * 100;
   const pos = at(r.risk_score), pLow = at(thresholds.low), pHigh = at(thresholds.high);
   const m = metrics && metrics.holdout_test;
   $("result").innerHTML = `
     <span class="badge ${lv.cls}">${lv.label}</span>
-    <div class="score">${pct.toFixed(1)}%</div>
-    <div class="empty">risco estimado de diabetes</div>
+    <div class="score">${fmt(r.risk_score * 100)}%</div>
+    <div class="sub0">risco estimado de diabetes</div>
     <div class="bar" role="img" aria-label="Posição do risco face aos limiares">
-      <div class="seg" style="left:0;width:${pLow}%;background:var(--low)"></div>
-      <div class="seg" style="left:${pLow}%;width:${pHigh - pLow}%;background:var(--mid)"></div>
-      <div class="seg" style="left:${pHigh}%;right:0;background:var(--high)"></div>
+      <div class="s" style="left:0;width:${pLow}%;background:var(--low)"></div>
+      <div class="s" style="left:${pLow}%;width:${pHigh - pLow}%;background:var(--mid)"></div>
+      <div class="s" style="left:${pHigh}%;right:0;background:var(--high)"></div>
       <div class="marker" style="left:${pos}%"></div>
     </div>
-    <div class="scale"><span style="left:0">0%</span><span style="left:${pLow}%">${(thresholds.low * 100).toFixed(1)}%</span><span style="left:${pHigh}%">${(thresholds.high * 100).toFixed(1)}%</span></div>
+    <div class="scale"><span style="left:0">0%</span><span style="left:${pLow}%">${fmt(thresholds.low * 100)}%</span><span style="left:${pHigh}%">${fmt(thresholds.high * 100)}%</span></div>
     <p class="advice">${lv.advice}</p>
     ${renderWhy(data.explanation, r.risk_score)}
     <dl class="meta">
       <dt>Modelo</dt><dd>${data.model.model_id} v${data.model.model_version}</dd>
-      <dt>Limiar de rastreio</dt><dd>${(thresholds.low * 100).toFixed(1)}% (alvo: apanhar ~80% dos casos)</dd>
-      ${m ? `<dt>Desempenho (teste)</dt><dd>ROC-AUC ${m.roc_auc.toFixed(2)}, sensibilidade ${(m.sensitivity * 100).toFixed(0)}%, especificidade ${(m.specificity * 100).toFixed(0)}%</dd>` : ""}
+      <dt>Limiar de rastreio</dt><dd>${fmt(thresholds.low * 100)}% (alvo: apanhar ~80% dos casos)</dd>
+      ${m ? `<dt>Desempenho (teste)</dt><dd>ROC-AUC ${fmt(m.roc_auc, 2)}, sensibilidade ${(m.sensitivity * 100).toFixed(0)}%, especificidade ${(m.specificity * 100).toFixed(0)}%</dd>` : ""}
     </dl>
-    <p class="disclaimer">Este resultado é uma estimativa estatística de rastreio e não substitui a avaliação de um profissional de saúde.
-    Muitos alertas serão falsos positivos (precisão de ~9%).</p>`;
+    <p class="disclaimer">Este resultado é uma estimativa estatística de rastreio e não substitui a avaliação de um profissional de saúde. Muitos alertas serão falsos positivos (precisão de ~9%).</p>`;
+}
+
+function renderPlaceholder() {
+  $("result").innerHTML = `
+    <div class="placeholder">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-6 4 12 2-6h6"/></svg>
+      <h3>O resultado aparece aqui</h3>
+      <p>Preencha o perfil (idade e sexo) e avance pelos passos. Quanto mais dados indicar, mais fiável é a estimativa, e verá também <b>porque</b> o risco é este.</p>
+    </div>`;
 }
 
 async function loadModels() {
   const sel = $("model");
+  const names = { lr: "Regressão logística (recomendado)", rf: "Random Forest", lgbm: "LightGBM", xgb: "XGBoost" };
   try {
-    const res = await fetch(`${API}/models`);
-    const data = await res.json();
-    const names = { lr: "Regressão logística (recomendado)", rf: "Random Forest", lgbm: "LightGBM", xgb: "XGBoost" };
-    data.available_models.forEach(m => {
-      const o = document.createElement("option");
-      o.value = m.name; o.textContent = names[m.name] || m.name; sel.appendChild(o);
-    });
-    sel.value = "lr";
-  } catch (e) {
-    ["lr", "rf", "lgbm", "xgb"].forEach(n => sel.add(new Option(n, n)));
-  }
+    const data = await (await fetch(`${API}/models`)).json();
+    data.available_models.forEach(m => sel.add(new Option(names[m.name] || m.name, m.name)));
+  } catch (e) { Object.keys(names).forEach(n => sel.add(new Option(names[n], n))); }
+  sel.value = "lr";
 }
 
 $("form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (step < STEPS - 1) { goto(step + 1); return; }
   showError("");
-  const age = num("age");
-  if (age === null || $("sex").value === "") { showError("Indique a idade e o sexo."); return; }
-  if (age < 25 || age > 64) { showError("O modelo foi treinado com pessoas de 25 a 64 anos."); return; }
-  const model = $("model").value;
-  const btn = $("btn-calc"); btn.disabled = true; btn.textContent = "A calcular…";
+  if (!validateStep1()) { showStep(0); return; }
+  if (!validateAllNumbers()) { showError("Corrija os valores assinalados."); return; }
+  const model = $("model").value, btn = $("btn-calc");
+  btn.disabled = true; btn.textContent = "A calcular…";
   try {
     const res = await fetch(`${API}/predict`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -348,26 +630,33 @@ $("form").addEventListener("submit", async (ev) => {
       fetch(`${API}/metrics/${model}`).then(r => (r.ok ? r.json() : null)).catch(() => null),
     ]);
     renderResult(body, info.thresholds, met && met.metrics);
-    if (window.innerWidth < 900) $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (window.innerWidth < 940) $("result").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) {
     showError("Não foi possível contactar a API.");
-  } finally {
-    btn.disabled = false; btn.textContent = "Calcular risco";
-  }
+  } finally { btn.disabled = false; btn.textContent = "Calcular risco"; }
 });
 
+/* ---------- exemplo / limpar ---------- */
+function setRadio(name, value) { const r = document.querySelector(`input[name="${name}"][value="${value}"]`); if (r) r.checked = true; }
+function setSlider(id, v) { $(id).value = v; $(id).dispatchEvent(new Event("input")); }
 $("btn-example").addEventListener("click", () => {
-  const v = { age: 55, sex: "0", education: 3, height: 160, weight: 85, waist: 102, sbp: 150, dbp: 95,
-              told_hyp: "1", bp_meds: "0", smoker: "0", smokeless: "0", alcohol: "none",
-              fruit_days: 2, fruit_serv: 1, veg_days: 5, veg_serv: 1, vig_min: 0, mod_min: 60, sedentary: 6 };
-  Object.entries(v).forEach(([k, val]) => { $(k).value = val; });
+  setRadio("sex", "0"); $("age").value = 55; $("age").dispatchEvent(new Event("input"));
+  setSlider("education", 3);
+  Object.entries({ height: 160, weight: 85, waist: 102, sbp: 150, dbp: 95, vig_min: 0, mod_min: 60 }).forEach(([k, v]) => { $(k).value = v; $(k).dispatchEvent(new Event("input")); });
+  setRadio("told_hyp", "1"); setRadio("bp_meds", "0"); setRadio("smoker", "0"); setRadio("smokeless", "0"); setRadio("alcohol", "none");
+  setSlider("fruit_days", 2); setSlider("fruit_serv", 1); setSlider("veg_days", 5); setSlider("veg_serv", 1); setSlider("sedentary", 6);
+  document.querySelectorAll(".err").forEach(e => e.textContent = ""); document.querySelectorAll(".inp.bad").forEach(e => e.classList.remove("bad"));
+  refresh();
 });
 $("btn-reset").addEventListener("click", () => {
-  $("form").reset(); showError("");
-  $("result").innerHTML = '<p class="empty">Preencha pelo menos a idade e o sexo e carregue em <b>Calcular risco</b>.</p>';
+  $("form").reset(); touched.clear();
+  Object.keys(sliderText).forEach((id) => { const o = $(id + "-out"); o.textContent = id === "education" ? "não indicado" : "—"; o.classList.add("off"); });
+  $("education-help").textContent = "Arraste para indicar os anos de escola concluídos.";
+  document.querySelectorAll(".err").forEach(e => e.textContent = ""); document.querySelectorAll(".inp.bad").forEach(e => e.classList.remove("bad"));
+  showError(""); showStep(0); renderPlaceholder(); refresh();
 });
 
-loadModels();
+renderPlaceholder(); loadModels(); refresh();
 </script>
 </body>
 </html>
